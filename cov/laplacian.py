@@ -3,8 +3,6 @@ from numpy.fft import rfft as rfft
 from numpy.fft import irfft as irfft
 import matplotlib.pyplot as plt
 import math
-import os
-os.system( "rm -rvf *.png")
 
 
 def dot( u, v ):
@@ -49,13 +47,18 @@ def make_f( N ):
     iid N(0,1) data
     '''
     factors = np.arange( 0, N/2 + 1 ) + 1
-    f_hat_real = np.random.normal( loc = 0.0, scale = 1, size = N/2+1 ) /factors
-    f_hat_imag = np.random.normal( loc = 0.0, scale = 1, size = N/2+1 ) /factors
+    f_hat_real = np.random.normal( loc = 0.0, scale = 1, size = N/2+1 ) / factors**1.3 
+    f_hat_imag = np.random.normal( loc = 0.0, scale = 1, size = N/2+1 ) / factors**1.3
     f = irfft( f_hat_real + 1j * f_hat_imag, N )
     assert len( f ) == N
     return f
 
 if __name__ == "__main__":
+
+    # Erase previous run
+    import os
+    os.system( "rm -rvf *.png")
+
     # Number of uniform grid points
     N = 500
     points = np.linspace( -0.5,  0.5, N ,endpoint = False )
@@ -94,7 +97,7 @@ if __name__ == "__main__":
         wavenumber = math.sqrt( eigenvalue - alpha ) / np.pi / 2  
         approx = np.min( np.abs( eigs - eigenvalue ) )
         print( "wavenumber    = " + str( wavenumber ) )
-        print( "approximation = " + str( approx ) ) 
+        print( "e.value error = " + str( approx ) ) 
         i = i + 1
     
     
