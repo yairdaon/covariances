@@ -1,3 +1,4 @@
+#!/usr/local/bin/python3
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -74,7 +75,7 @@ def apply_covariance( f, params ):
     '''
     g = pad( f, params )
 
-    cov_g = lap.fourier_multiplier( g, cov_eigs )        
+    cov_g = lap.fourier_multiplier( g, params['cov_eigs'] )        
     
     return project( cov_g, params )
  
@@ -94,8 +95,8 @@ def apply_inv_schur_comp( f, params ):
     C_in applied to f.
     '''
     g = pad( f, params )
-    
-    cov_g = lap.fourier_multiplier( g, prec_eigs )
+
+    cov_g = lap.fourier_multiplier( g, params['prec_eigs'] )
       
     return project( cov_g, params )
   
@@ -114,7 +115,7 @@ def apply_precision( f, params ):
     the inv_schur flag.
     '''      
     
-    x_0= np.zeros( params['small_domain'] )
+    x_0 = np.zeros( params['small_domain'] )
     return cg.pcg( f,
                    x_0,
                    apply_covariance,
@@ -125,7 +126,7 @@ def apply_precision( f, params ):
 
     
 # Set the points
-big_domain = 48000  # Total domain
+big_domain = 6000  # Total domain
 small_domain = big_domain / 2 # only the inside
 leftover = big_domain - small_domain
 inside , in_step = np.linspace( 0.25, 0.75, small_domain , endpoint = False , retstep = True ) 
@@ -136,9 +137,9 @@ intervals = [ left, inside, right ]
 pts = np.concatenate( ( inside, left, right ) )
 
 # Eigenvalues of the laplacian-like operator, no power involved yet.
-alpha = 0.85
-power = -.56
-sigma = 10.0
+alpha = 0.25 
+power = -.63
+sigma = 1
 
 eigs = lap.laplacian_eigenvalues( big_domain, alpha )
 cov_eigs      = sigma**2      * np.power( eigs, power     )
@@ -152,7 +153,7 @@ eps = 1E-5
 # Parameters that we'll carry around
 params = {}
 params['cov_eigs'        ] = cov_eigs
-params['cov_half_eigs'   ] = cov_half_eigs
+params['cov_half_eigs'   ] = cov_half_eigs 
 params['prec_eigs'       ] = prec_eigs
 params['intervals'       ] = intervals
 params['cov_power'       ] = power
@@ -187,7 +188,7 @@ if __name__ == "__main__":
     # Apply the covariance and its inverse ##########
     lap.count = 0
     print( lap.count )
-    f = lap.make_f( len(inside) )
+    f = lap.make_f( len(inside) ) * sigma
     cov_f = apply_covariance( f, params )
     reconstruct_f = apply_precision( cov_f, params )
     print( lap.count )
@@ -199,12 +200,12 @@ if __name__ == "__main__":
     axes = plt.gca()
     axes.set_xlim( [ 0.25,0.75 ] )
     plt.title( "Apply " + cov_str + "\nand its inverse to reconstruct to a function." )
-    plt.legend( loc=2,prop={'size':6} )
+    plt.legend( loc=2, prop={'size':6} )
     plt.savefig( "Apply Covariance and precision.png" )
     plt.close()
 
     # Plot empirical covaraince matrix #############
-    num_samples = 50#000
+    num_samples = 5#0000
     cov_matrix = 0
     for i in range( num_samples ):
         smp = sample( params )

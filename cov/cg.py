@@ -1,5 +1,5 @@
+#!/usr/local/bin/python3
 import numpy as np
-
 
 def pcg( b, x, apply_A, params_A, solve_M, params_M, eps ):
     '''

@@ -1,3 +1,5 @@
+#!/usr/local/bin/python3
+
 import numpy as np
 from numpy.fft import rfft as rfft
 from numpy.fft import irfft as irfft
@@ -91,7 +93,7 @@ if __name__ == "__main__":
 
     # Erase previous run
     import os
-    os.system( "rm -rvf *.png")
+    os.system( "rm -rvf Rayleigh*.png")
 
     # Number of uniform grid points
     N = 500
