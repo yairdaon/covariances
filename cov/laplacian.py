@@ -80,9 +80,9 @@ def make_f( N ):
     iid N(0,1) data
     '''
     factors = np.arange( 0, N/2 + 1 ) + 1
-    #factors[0:15] = 1
-    f_hat_real = np.random.normal( loc = 0.0, scale = 1, size = N/2+1 ) / factors**1.3 
-    f_hat_imag = np.random.normal( loc = 0.0, scale = 1, size = N/2+1 ) / factors**1.3
+    factors[0:15] = 1
+    f_hat_real = np.random.normal( loc = 0.0, scale = 1, size = N/2+1 ) / factors**3.2 
+    f_hat_imag = np.random.normal( loc = 0.0, scale = 1, size = N/2+1 ) / factors**3.2
     f = irfft( f_hat_real + 1j * f_hat_imag, N )
     assert len( f ) == N
     return f #/ norm( f )
@@ -140,15 +140,15 @@ if __name__ == "__main__":
         approx = np.min( np.abs( eigs - eigenvalue ) )
         i = i + 1
     
- # Plot Last
-plt.plot( points, eigenvector )
-axes = plt.gca()
-axes.set_ylim( [-2, 2 ] )
-axes.set_xlim( [ -0.5,0.5 ] )
-title = "Estimates: $k = %.2f$, Error $= %.4f$" % ( wavenumber, approx )
-plt.title( title )
-plt.savefig( "Rayleigh Quotient Iteration " + str( i ) + ".png")
-plt.close()   
+    # Plot Last
+    plt.plot( points, eigenvector )
+    axes = plt.gca()
+    axes.set_ylim( [-2, 2 ] )
+    axes.set_xlim( [ -0.5,0.5 ] )
+    title = "Estimates: $k = %.2f$, Error $= %.4f$" % ( wavenumber, approx )
+    plt.title( title )
+    plt.savefig( "Rayleigh Quotient Iteration " + str( i ) + ".png")
+    plt.close()   
     
     
     
