@@ -5,13 +5,15 @@ def pcg( b, x, apply_A, params_A, solve_M, params_M, eps ):
     '''
     Preconditioned Conjugate Gradients method 
     from Wikipedia
+
+    v_c is current v, v_pr is previous v etc. 
     '''
     
     # Here k == 0
     x_c = x # Initial guess
     r_c = b - apply_A( x_c , params_A ) # Intial residual
     z_c = solve_M( r_c, params_M ) # Initial z
-    p_c = z_c 
+    p_c = z_c # Initial other thing
     
     while True:
         

@@ -16,7 +16,3 @@ clean:
 	rm -vf cov*.so
 
 
-tester:
-	python2.7 tests/cov_tests.py
-
-

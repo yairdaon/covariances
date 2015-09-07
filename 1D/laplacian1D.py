@@ -16,11 +16,9 @@ def dot( u, v ):
     We ignore imaginary parts since all we 
     do we do in real domains
     '''
-    n = len( u ) 
-    zeros = np.zeros( n )
-    assert np.allclose( u.imag , zeros )
-    assert np.allclose( v.imag , zeros )
-    return np.dot( u.real, v.real ) / n
+    assert np.all( u.imag == 0 )
+    assert np.all( v.imag == 0 )
+    return np.dot( u, v ) / len( u ) 
 
 def norm( u ):
     '''
@@ -38,13 +36,12 @@ def fourier_multiplier( f, eigs ):
     count = count + 1
 
 
-    assert np.allclose( f.imag , np.zeros ( len( f ) ) )
+    assert np.all( f.imag == 0 )
     f_hat = rfft( f )
     
-    assert len( f_hat ) == len( eigs ), str( len( f_hat ) ) + "\n" + str( len ( eigs )  )
+    assert f_hat.shape == eigs.shape, str( f_hat.shape ) + "\n" + str( eigs.shape )
     f_hat = f_hat * eigs
         
-    
     return irfft( f_hat )    
 
 def laplacian_eigenvalues( N, alpha ):
@@ -72,7 +69,6 @@ def laplacian_eigenvalues( N, alpha ):
     factor = 4 * np.pi * np.pi 
 
     eigs = np.arange( 0, N/2 + 1 ) 
-    assert len( eigs ) == N/2 + 1 , str( len(eigs) ) + "\n" + str( N/2+1 )
     
     return alpha + factor * eigs * eigs * beta 
 
@@ -83,11 +79,11 @@ def make_f( N ):
     '''
     factors = np.arange( 0, N/2 + 1 ) + 1
     factors[0:15] = 1
-    f_hat_real = np.random.normal( loc = 0.0, scale = 1, size = N/2+1 ) / factors**3.2 
-    f_hat_imag = np.random.normal( loc = 0.0, scale = 1, size = N/2+1 ) / factors**3.2
+    f_hat_real = np.random.normal( loc = 0.0, scale = 1, size = N/2 + 1 ) / factors**3.2 
+    f_hat_imag = np.random.normal( loc = 0.0, scale = 1, size = N/2 + 1 ) / factors**3.2
     f = irfft( f_hat_real + 1j * f_hat_imag, N )
     assert len( f ) == N
-    return f #/ norm( f )
+    return f / norm( f )
 
 if __name__ == "__main__":
 
@@ -96,7 +92,7 @@ if __name__ == "__main__":
     os.system( "rm -rvf Rayleigh*.png")
 
     # Number of uniform grid points
-    N = 500
+    N = 256 * 256
     points = np.linspace( -0.5,  0.5, N ,endpoint = False )
     
     # eigenvalues of laplacian with fourier basis
@@ -115,7 +111,7 @@ if __name__ == "__main__":
         plt.plot( points, eigenvector )
         axes = plt.gca()
         axes.set_ylim( [-2, 2 ] )
-        axes.set_xlim( [ -0.5,0.5 ] )
+        axes.set_xlim( [ -0.5, 0.5 ] )
         title = "Estimates: $k = %.2f$, Error $= %.4f$" % ( wavenumber, approx )
         plt.title( title )
         plt.savefig( "Rayleigh Quotient Iteration " + str( i ) + ".png")

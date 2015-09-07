@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import cg
-import laplacian as lap
+import laplacian1D as lap
 
 def project( v, params ):
     '''
@@ -137,8 +137,8 @@ intervals = [ left, inside, right ]
 pts = np.concatenate( ( inside, left, right ) )
 
 # Eigenvalues of the laplacian-like operator, no power involved yet.
-alpha = 0.25 
-power = -.63
+alpha = 0.15 
+power = -.78
 sigma = 1
 
 eigs = lap.laplacian_eigenvalues( big_domain, alpha )
@@ -205,7 +205,7 @@ if __name__ == "__main__":
     plt.close()
 
     # Plot empirical covaraince matrix #############
-    num_samples = 5#0000
+    num_samples = 50000
     cov_matrix = 0
     for i in range( num_samples ):
         smp = sample( params )
