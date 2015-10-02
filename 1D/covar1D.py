@@ -1,6 +1,7 @@
 #!/usr/local/bin/python3
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.sparse.linalg as la
 
 import cg
 import laplacian1D as lap
@@ -137,7 +138,7 @@ intervals = [ left, inside, right ]
 pts = np.concatenate( ( inside, left, right ) )
 
 # Eigenvalues of the laplacian-like operator, no power involved yet.
-alpha = 0.15 
+alpha = 0.25 
 power = -.78
 sigma = 1
 
@@ -169,6 +170,27 @@ if __name__ == "__main__":
     reconstruct_str = "$(  %.2f \Delta +  %.2fI)^{ %.2f} \circ $ " % (alpha-1, alpha, -power)
     reconstruct_str = reconstruct_str + cov_str
 
+    # Plot eigenvalues
+    lin_op = la.LinearOperator( ( small_domain,small_domain ) , lambda v: apply_covariance( v, params ) )
+    eigs = la.eigs( lin_op, k = 500, return_eigenvectors = False ) 
+    eigs = np.sort( eigs )
+    eigs = eigs[::-1]
+    k = np.arange( 1, len( eigs ) + 1) 
+    powa = 1.6
+    k = k**powa
+    eigs = eigs * k
+
+    plt.plot( eigs, 'ro' )    
+    plt.xlabel('$k$')
+    title = 'Eigenvalues of covariance after cancelling their decay'
+    plt.ylabel('$\lambda_k \cdot k^{' + str(powa) + '}$')
+    plt.title(title)
+
+    # Tweak spacing to prevent clipping of ylabel
+    plt.subplots_adjust(left=0.15)
+    plt.savefig( "eigenvalues.png" )
+    plt.close()
+
     # Sample from the gaussian ##############
     bound = 0
     for i in range( 20 ):
@@ -186,10 +208,10 @@ if __name__ == "__main__":
     plt.close()
 
     # Apply the covariance and its inverse ##########
-    lap.count = 0
-    print( lap.count )
     f = lap.make_f( len(inside) ) * sigma
     cov_f = apply_covariance( f, params )
+    lap.count = 0
+    print( lap.count )
     reconstruct_f = apply_precision( cov_f, params )
     print( lap.count )
     
@@ -205,7 +227,7 @@ if __name__ == "__main__":
     plt.close()
 
     # Plot empirical covaraince matrix #############
-    num_samples = 50000
+    num_samples = 50
     cov_matrix = 0
     for i in range( num_samples ):
         smp = sample( params )

@@ -1,93 +1,61 @@
-#!/usr/local/bin/python3
+#!/usr/local/bin/python2.7
 import numpy as np
+import math
+import scipy.sparse as sprs 
+import scipy.sparse.linalg as la
+import scipy.interpolate as polat
 import matplotlib.pyplot as plt
 
-import cg
-import laplacian2D as lap
+import helper
+import laplacian2d as lap
+import container as cot
 
-def project( v, params ):
-    '''
-    Take a vector v of lenght N and return its projection
-    to the first n coordinates.
+def multigrid_preconditioner( f, params ):
     
-    In Linear Algebraic terms, project can be thought
-    of as a n x N matrix A s.t. A_{ij} = 1 iff i = j and 
-    A_{ij} = 0 otherwise. It is the transpose of the 
-    pad matrix.
-    '''
-    pass
-
-def pad( v , params ):
-    '''
-    take a vector v of length n and pad it with zeros
-    so that the resulting vector has length N.
-
-    In Linear Algebraic terms, pad can be thought of as
-    a N x n matrix A s.t. A_{ij} = 1 iff i = j and 
-    A_{ij} = 0 otherwise. It is the transpose of the 
-    projection matrix.
-    '''    
-    pass
-
-def sample( params ):
-    '''
-    Sample a gaussian with mean zero and covariance 
-    operator which is defined using an eigenvalue
-    decomposition in Fourier domain.
-    '''    
-    # Generate iid gaussians on a mesh corresponding to
-    # the ENTIRE domain
-    Z = np.random.normal( size =  params['big_domain'] )  
-
-    # Apply covariance to power half. Makes this a sample from
-    # our covaraince function.
-    sample = lap.fourier_multiplier( Z, params['cov_half_eigs'] )
+    assert f.shape == ( len( params.x_grid ) , len( params.y_grid ) ) 
     
-    # throw away unnecessary part of the sample
-    return project( sample, params ) 
-
-def apply_covariance( f, params ):
-    ''' 
-    Apply covariance in a subdomain.
-
-                   [ C_inside    |  C_boundary  ] 
-    Define C_all = [ ------------|------------- ],
-                   [ C_boundary' |  C_outside   ]
+    tmp    = cot.container( int( params.M / 2 ), #M
+                            int( params.N / 2 ), #N
+                            1E-5, #eps
+                            helper.apply_inv_schur_comp,
+                            params.alpha  , # alpha
+                            params.sigma  , # sigma 
+                            params.power  , # power
+                            "Coarse" #grid_type
+                            )
     
-    the covaraince matrix used on the entire domain.
-    
-    This routine returns  C_inside * f.
-    '''
-    g = pad( f, params )
 
-    cov_g = lap.fourier_multiplier( g, params['cov_eigs'] )        
+    # fine grid points
+    X_f, Y_f = np.meshgrid( params.x_grid,  params.y_grid  )
+    pts_f = np.concatenate( np.ravel(X_f) , np.ravel(Y_f) , axis=0 )
     
-    return project( cov_g, params )
- 
-def apply_inv_schur_comp( f, params ):
-    ''' 
-    Apply inverse of covariance's Schur complement.
+    # Coarse grid points
+    X_c, Y_c = np.meshgrid( params.x_grid,  params.y_grid  )
+    pts_c = np.concatenate( np.ravel(X_c) , np.ravel(Y_c) , axis=0 )
 
-                   [ C_inside    |  C_boundary  ] 
-    Define C_all = [ ------------|------------- ],
-                   [ C_boundary' |  C_outside   ]
+    # interpolant on FINE grid
+    interpolant_f = polat.LinearNDInterpolator( pts_f.T , np.ravel(f) )
+   
+    # Interpolate to coarse grid
+    coarse_f = interpolant.ev( np.ravel(X), np.ravel(Y) )
     
-    the covaraince matrix used on the entire domain.
+    # Solve on COARSE grid
+    coarse_solution, _ = la.gmres( tmp.cov  , coarse_f, tol = tmp.eps, M = tmp.prec )
+    coarse_solution = coarse_solution.reshape( (tmp.n,tmp.m) )
     
-    This routines returns  
-    (C_in - C_bd * C_out^{-1} * C_bd' )^{-1} * f. 
-    This is the inverse of the schur complement of
-    C_in applied to f.
-    '''
-    g = pad( f, params )
-
-    cov_g = lap.fourier_multiplier( g, params['prec_eigs'] )
-      
-    return project( cov_g, params )
-  
+    # Interpolant to go back to fine grid
+    pts = np.concatenate( np.ravel(X) , np.ravel(Y) , axis=0 )
+    interpolant = polat.LinearNDInterpolator( pts.T , np.ravel(f) )
+   
+    Y, X = np.meshgrid( params.y_grid , params.x_grid  )
+    fine_solution = interpolant.ev( np.ravel(X), np.ravel(Y) )
+    fine_solution = fine_solution.reshape( X.shape )
+        
+    return fine_solution
+    
 def apply_precision( f, params ):
-    ''' 
-    We'd like to apply an inverse covariace to f. 
+    """
+    We' like to apply an inverse covariace to f. 
     However, it is not that simple - we don't have
     direct access to the inverse covariacne using
     pads and projections. We can apply covariacne
@@ -95,106 +63,180 @@ def apply_precision( f, params ):
     
     The former is the target of the conjugate 
     gradients method. The latter is used as a
-    preconditioner. We access both using the same
-    routien, only with a different flag - namely 
-    the inv_schur flag.
-    '''      
-    
-    x_0 = np.zeros( params['small_domain'] )
-    return cg.pcg( f,
-                   x_0,
-                   apply_covariance,
-                   params,
-                   apply_inv_schur_comp,
-                   params,
-                   params['eps'] )
+    preconditioner.
+    """
+    # A chunk of code that defines the callback function
+    ####################################################
+    def gen(): # generator that counts:
+        cur = 0
+        while True:
+            yield cur
+            cur = cur + 1    
+    def callback( x, A, gen, grid_type ): # do these instructions every iteration:
+        counter = gen.next()
+        if counter % 25 == 0:
+            residual = np.linalg.norm( A(np.ravel(x)) - np.ravel(f) )
+            print( grid_type + " grid. CG cycles = " + str( counter ) + ", r = " + str( residual ) + "." )
+   
+    generator = gen()
+    wrapper = lambda x: callback( x, params.cov, generator, params.grid_type   ) # just a wrapper
+    ####################################################
 
-    
-# Set the points
-big_domain = 6000  # Total domain
-small_domain = big_domain / 2 # only the inside
-leftover = big_domain - small_domain
-
-# Eigenvalues of the laplacian-like operator, no power involved yet.
-alpha = 0.25 
-power = -1.13
-sigma = 1
-
-eigs = lap.laplacian_eigenvalues( big_domain, alpha )
-cov_eigs      = sigma**2      * np.power( eigs, power     )
-cov_half_eigs = sigma         * np.power( eigs, power / 2 )
-prec_eigs     = sigma**(-2)   * np.power( eigs, -power    )  
-
-
-# threshold for conjugate gradients
-eps = 1E-5
- 
-# Parameters that we'll carry around
-params = {}
-params['cov_eigs'        ] = cov_eigs
-params['cov_half_eigs'   ] = cov_half_eigs 
-params['prec_eigs'       ] = prec_eigs
-
-params['cov_power'       ] = power
-params['big_domain'      ] = big_domain
-params['small_domain'    ] = small_domain
-params['eps'             ] = eps
-
-
+    solution, _ = la.cg( params.cov  , np.ravel(f), M = params.prec  , tol = params.eps  , callback = wrapper )
+    return solution.reshape( (params.n,params.m) )
+                           
 if __name__ == "__main__":
-    
-    # Description of covariance operator
-    cov_str = "$(  %.2f \Delta +  %.2fI)^{ %.2f}$" % (alpha-1, alpha, power)
-    reconstruct_str = "$(  %.2f \Delta +  %.2fI)^{ %.2f} \circ $ " % (alpha-1, alpha, -power)
-    reconstruct_str = reconstruct_str + cov_str
 
-    # Sample from the gaussian ##############
-    bound = 0
-    for i in range( 20 ):
-        smp = sample( params )
-        bound = max( bound, np.max( np.abs( smp ) ) ) 
+    params = cot.container( 512, #M
+                            512, #N
+                            1E-1, #eps
+                            #multigrid_preconditioner,
+                            helper.apply_inv_schur_comp, 
+                            0.0, # alpha
+                            500, #sigma 
+                            -1.1, #power
+                            "Fine" #grid_type
+                            )
+
+    # Apply covariance and precision #########
+    f = lap.make_f( params.m  , params.n   ) * params.sigma  
+    cov_f = helper.apply_covariance( f, params )
+    reconstruct_f = apply_precision( cov_f, params ) 
+    err = helper.norm( f - reconstruct_f )
+    print( "Reconstruction Error = " + str( err ) )
+
+    # Plot eigenvalues
+    # if False:
+    #     lin_op = la.LinearOperator(
+    #         ( params.in_size   , params.in_size   ) , 
+    #         lambda v: np.ravel( apply_covariance( v.reshape( params.in_dims   ) , params ) )
+    #         )
+    #     eigs = la.eigs( lin_op, k = 1000, return_eigenvectors = False ) 
+    #     eigs = np.sort( eigs )
+    #     eigs = eigs[0:-1 
+    #     eigs = eigs[::-1 
+    #     k = np.arange( 1, len( eigs ) + 1) 
+    #     powa = 1.04
+    #     k = k**powa
+    #     eigs = eigs * k
+        
+    #     plt.plot( eigs, 'ro' )    
+    #     plt.xlabel('$k$')
+    #     plt.ylabel('$\lambda_k \cdot k^{' + str(powa) + '}$')
+    #     plt.title( 'Eigenvalues of 2D covariance after cancelling their decay' )
+    #     plt.subplots_adjust(left=0.15)
+    #     plt.savefig( "eigenvalues.png" )
+    #     plt.close()
+       
+    # # Sample from the gaussian ############## 
+    for i in range( 10 ):
+        smp = helper.sample( params )
         
         # plot - boring...
-        plt.plot( inside, smp )
-    axes = plt.gca()
-    axes.set_ylim( [-1.2 * bound, 1.2 * bound ] )
-    axes.set_xlim( [ 0.25,0.75 ] )
-    plt.title( "Samples from Gaussian with zero mean and covaraince " + cov_str +
-               ".\nBig domain is $[0,1]$ interval. Subdomain is $[0.25,0.75]$." )
-    plt.savefig( "Samples.png" )
-    plt.close()
+        plt.imshow( smp, vmin = -1, vmax = 1)
+        plt.colorbar()
+        plt.title( params.desc + "\n" )
+        plt.savefig( "Sample " + str(i) + ".png" )
+        plt.close()
+    # Unfortunately, this takes waaaay too much time
+    # Plot empirical covariance matrix ####### 
+    # cov_matrix = np.zeros( (m*n, m*n) )
+    # num_samples = 10
+    # for i in range( num_samples ):
+    #     if i % 1 == 0:
+    #         print( str(i) +"th sample" )
+    #         plt.imshow( cov_matrix / num_samples )
+    #         print("imshow")
+    #         plt.colorbar()
+    #         print("colorbar")
+    #         plt.title( "Covariance matrix of " + cov_str +"\nusing " + str(i) + " samples." )
+    #         print("title")
+    #         plt.savefig( "Temporary Covariance.png" )
+    #         print("savefig")
+    #         plt.close()
+    #         print( "close" )
+            
+                        
+    #     smp = sample( params )
+    #     smp = np.ravel( smp )
+    #     cov_matrix = cov_matrix + np.outer( smp, smp )
 
-    # Apply the covariance and its inverse ##########
-    lap.count = 0
-    print( lap.count )
-    f = lap.make_f( len(inside) ) * sigma
-    cov_f = apply_covariance( f, params )
-    reconstruct_f = apply_precision( cov_f, params )
-    print( lap.count )
+    # # Plot. BS
+    # plt.imshow( cov_matrix / num_samples )
+    # plt.colorbar()
+    # plt.title( "Covariance matrix of " + cov_str +"\nusing " + str(i) + " samples." )
+    # plt.savefig( "Covariance Matrix.png" )
+    # plt.close()
     
-    # Plot shit 
-    plt.plot( inside, reconstruct_f, color = "b" , label = "reconstructed u" )
-    plt.plot( inside, cov_f        , color = "r" , label = cov_str + "u"     )
-    plt.plot( inside, f            , color = "g" , label = "u"               )
-    axes = plt.gca()
-    axes.set_xlim( [ 0.25,0.75 ] )
-    plt.title( "Apply " + cov_str + "\nand its inverse to reconstruct to a function." )
-    plt.legend( loc=2, prop={'size':6} )
-    plt.savefig( "Apply Covariance and precision.png" )
-    plt.close()
 
-    # Plot empirical covaraince matrix #############
-    num_samples = 50000
-    cov_matrix = 0
-    for i in range( num_samples ):
-        smp = sample( params )
-        smp = project( smp, params ) 
-        cov_matrix = cov_matrix + np.outer( smp, smp )
+    # The neumann!!!
+    # X = np.linspace( 0, 1, num = params.m' , endpoint = True )
+    # Y = np.linspace( 0, 1, num = params.n' , endpoint = True )
+    # X, Y = np.meshgrid( X, Y )
+    
+    # f = -4 * np.pi * np.pi * np.cos( 2 * np.pi * X )
+    # u = apply_with_neumann( f, params )
+    # u = u - np.mean( u )
+    # plt.imshow( u )
+    # plt.colorbar()
+    # plt.savefig( "solved u.png" )
+    # plt.close()
+    # v = np.cos( 2 * np.pi * X ) 
+    # v = v - np.mean( v ) 
+    # plt.imshow( v )
+    # plt.colorbar()
+    # plt.savefig( "true u.png" )
+    # plt.close()
+    # #print( v /  u )
+    # #assert False
 
-    cov_matrix = cov_matrix / num_samples
-    plt.imshow( cov_matrix )
-    plt.colorbar()
-    plt.title( "Covariance matrix arising by truncating " + cov_str +" using "
-               +str(num_samples) + " samples." )
-    plt.savefig( "Covariance Matrix.png" )
-    plt.close()
+# def apply_with_neumann( u, params ):
+#     '''
+#     use neumann bdry conditions. make sure the condition
+#     \int \int_{\Omega} f = 
+#     \ind_{\partial \Omega} \frac{\partial u}{\partial n } 
+#     holds
+#     '''    
+#     h = params.hx' 
+#     m = params.m' 
+#     n = params.n' 
+    
+#     # Here we determine a Neumann BC that is consistent
+#     # with u, as stated in the docstring
+#     int_u = np.sum( u ) * h * h
+#     bdry_size = ( 2*m + 2*n - 2 ) * h
+#     c = int_u / bdry_size
+#     correction = 2.0 * h * c
+     
+#     # The basic averaging scheme of the laplacian. 
+#     # every point is -4 * u_point plus:
+#     # sum over neighbours of u_neighbour
+#     just_sum = -4*u
+#     just_sum[0:-1, :  ] = just_sum[0:-1, :    + u[1:   , :  ]
+#     just_sum[1:  , :  ] = just_sum[1:  , :    + u[0:-1 , :  ]
+#     just_sum[ :  ,0:-1] = just_sum[ :  ,0:-1] + u[ :   ,1:  ]
+#     just_sum[ :  ,1:  ] = just_sum[ :  ,1:  ] + u[ :   ,0:-1]
+
+#     # edges...
+#     just_sum[   0 , 1:-1 ] = just_sum[   0 , 1:-1 ] + u[ 1    , 1:-1 ] + correction
+#     just_sum[  -1 , 1:-1 ] = just_sum[  -1 , 1:-1 ] + u[-2    , 1:-1 ] + correction
+#     just_sum[1:-1 ,    0 ] = just_sum[1:-1 ,    0 ] + u[ 1:-1 ,    1 ] + correction
+#     just_sum[1:-1 ,   -1 ] = just_sum[1:-1 ,   -1 ] + u[ 1:-1 ,   -2 ] + correction
+    
+#     # corners
+#     just_sum[ 0 , 0 ] = just_sum[ 0 , 0 ] + u[ 1 , 0 ] + u[ 1 , 0 ] + math.sqrt(2) * correction
+#     just_sum[ -1, 0 ] = just_sum[-1 , 0 ] + u[-2 , 0 ] + u[ 1 , 1 ] + math.sqrt(2) * correction
+#     just_sum[ 0 ,-1 ] = just_sum[ 0 , -1] + u[ 1 , -1] + u[ 0 , -2] + math.sqrt(2) * correction
+#     just_sum[-1 ,-1 ] = just_sum[-1 , -1] + u[-2 , -1] + u[-1 , -2] + math.sqrt(2) * correction
+ 
+#     # make sure we use POSITIVE DEFINITE LAPLACIAN
+#     just_sum = -just_sum / (h*h)
+
+#     # multiply by beta
+#     just_sum = params.beta  * just_sum
+
+#     # add alpha times identity...
+#     just_sum = just_sum + params.alpha * f
+
+#     #c'est tout
+#     return just_sum
