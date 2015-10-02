@@ -41,26 +41,26 @@ class container():
         self.y_grid         = np.arange( 0, hy * n, hy )
         self.big_zeros      = np.zeros((N,M)) # Use to pad with zeros. See routine "pad".
         if alpha > 0:
-            self.desc           = "$\mathcal{C} = %4d^{2} \cdot  %.2f(-\Delta )^{%.2f} +  %.2f$ (Domain: $\int_{[0,1]^2} u = 0$)." % (sigma, 1-alpha, power, alpha)    
+            self.desc           = "$\mathcal{C} = %4d^{2} (-%.2f\Delta +  %.2fI  )^{%.2f}$." % (sigma, 1-alpha, alpha, power)    
         else:
             self.desc           = "$\mathcal{C} = %4d^{2} (-\Delta )^{%.2f}$ (Domain: $\int_{[0,1]^2} u = 0$)." % (sigma, power)    
         # Generate eigenvalues laplacian like operator
         eigs = lap.laplacian_eigenvalues( M, N ) 
-        eigs[0] = 1 # just so we can invert, eventually we set it to zero
         
         # Eigenvavalues of covariance over entire domain
-        self.cov_eigs =  alpha + (1-alpha) * sigma**2 * np.power(eigs,power ) 
-        
+        self.cov_eigs = alpha + (1-alpha) * eigs 
+        self.cov_eigs = sigma**2 * np.power( self.cov_eigs, power )
+
         # Eigenvalues of square root of covariance. used for sampling a Gaussian
         self.cov_half_eigs  = np.power( self.cov_eigs, 1 / 2.0 ) 
 
         # Eigenvalues of precision over entire domain
         self.prec_eigs      = 1 / self.cov_eigs 
         
-        # Enforce zero mean:
-        self.cov_eigs[0] = 0
-        self.cov_half_eigs[0] = 0
-        self.prec_eigs[0] = 0
+        ##  Enforce zero mean:
+        # self.cov_eigs[0] = 0
+        # self.cov_half_eigs[0] = 0
+        # self.prec_eigs[0] = 0
 
         # LinearOperator types for scipy.sparse.linalg.cg 
         self.cov  = la.LinearOperator( (m*n,m*n), lambda x: helper.apply_covariance( x.reshape((n,m)), self ) )

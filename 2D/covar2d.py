@@ -16,7 +16,7 @@ def multigrid_preconditioner( f, params ):
     
     tmp    = cot.container( int( params.M / 2 ), #M
                             int( params.N / 2 ), #N
-                            1E-5, #eps
+                            1E-6, #eps
                             helper.apply_inv_schur_comp,
                             params.alpha  , # alpha
                             params.sigma  , # sigma 
@@ -27,30 +27,34 @@ def multigrid_preconditioner( f, params ):
 
     # fine grid points
     X_f, Y_f = np.meshgrid( params.x_grid,  params.y_grid  )
-    pts_f = np.concatenate( np.ravel(X_f) , np.ravel(Y_f) , axis=0 )
+    pts_f = np.vstack(  (np.ravel(X_f),np.ravel(Y_f))  )
+    pts_f = pts_f.T
+    assert pts_f.shape == (params.m * params.n, 2), str(pts_f.shape) +"\n != \n" + str( (params.m * params.n, 2) )
     
     # Coarse grid points
-    X_c, Y_c = np.meshgrid( params.x_grid,  params.y_grid  )
-    pts_c = np.concatenate( np.ravel(X_c) , np.ravel(Y_c) , axis=0 )
+    X_c, Y_c = np.meshgrid( tmp.x_grid,  tmp.y_grid  )
+    pts_c= np.vstack(  (np.ravel(X_c),np.ravel(Y_c))  )
+    pts_c = pts_c.T
+    assert pts_c.shape == (tmp.m * tmp.n, 2), str(pts_c.shape) +"\n != \n" + str( (tmp.m * tmp.n, 2) )
 
     # interpolant on FINE grid
-    interpolant_f = polat.LinearNDInterpolator( pts_f.T , np.ravel(f) )
+    interpolant_f = polat.LinearNDInterpolator( pts_f , np.ravel(f), fill_value = 0.0 )
    
     # Interpolate to coarse grid
-    coarse_f = interpolant.ev( np.ravel(X), np.ravel(Y) )
+    f_c = interpolant_f( np.ravel(X_c), np.ravel(Y_c) )
     
     # Solve on COARSE grid
-    coarse_solution, _ = la.gmres( tmp.cov  , coarse_f, tol = tmp.eps, M = tmp.prec )
-    coarse_solution = coarse_solution.reshape( (tmp.n,tmp.m) )
-    
-    # Interpolant to go back to fine grid
-    pts = np.concatenate( np.ravel(X) , np.ravel(Y) , axis=0 )
-    interpolant = polat.LinearNDInterpolator( pts.T , np.ravel(f) )
-   
-    Y, X = np.meshgrid( params.y_grid , params.x_grid  )
-    fine_solution = interpolant.ev( np.ravel(X), np.ravel(Y) )
-    fine_solution = fine_solution.reshape( X.shape )
+    coarse_solution, _ = la.gmres( tmp.cov, f_c, tol = tmp.eps, M = tmp.prec )
         
+    # Interpolant to go back to fine grid
+    interpolant_c = polat.LinearNDInterpolator( pts_c , np.ravel(coarse_solution), fill_value = 0.0 )
+   
+    fine_solution = interpolant_c( np.ravel(X_f), np.ravel(Y_f) )
+    fine_solution = fine_solution.reshape( (params.n,params.m) )
+
+    assert f.shape == fine_solution.shape
+    print( fine_solution )
+    
     return fine_solution
     
 def apply_precision( f, params ):
@@ -82,17 +86,17 @@ def apply_precision( f, params ):
     wrapper = lambda x: callback( x, params.cov, generator, params.grid_type   ) # just a wrapper
     ####################################################
 
-    solution, _ = la.cg( params.cov  , np.ravel(f), M = params.prec  , tol = params.eps  , callback = wrapper )
+    solution, _ = la.cg( params.cov, np.ravel(f), tol = params.eps, callback = wrapper , M = params.prec )
     return solution.reshape( (params.n,params.m) )
                            
 if __name__ == "__main__":
-
-    params = cot.container( 512, #M
-                            512, #N
-                            1E-1, #eps
-                            #multigrid_preconditioner,
-                            helper.apply_inv_schur_comp, 
-                            0.0, # alpha
+    
+    params = cot.container( 16, #M
+                            16, #N
+                            1E-8 , #eps
+                            multigrid_preconditioner,
+                            #helper.apply_inv_schur_comp, 
+                            0.2, # alpha
                             500, #sigma 
                             -1.1, #power
                             "Fine" #grid_type
@@ -100,6 +104,8 @@ if __name__ == "__main__":
 
     # Apply covariance and precision #########
     f = lap.make_f( params.m  , params.n   ) * params.sigma  
+    initial_residual = np.linalg.norm( np.ravel(f) )
+    params.eps = params.eps * initial_residual
     cov_f = helper.apply_covariance( f, params )
     reconstruct_f = apply_precision( cov_f, params ) 
     err = helper.norm( f - reconstruct_f )
@@ -133,7 +139,7 @@ if __name__ == "__main__":
         smp = helper.sample( params )
         
         # plot - boring...
-        plt.imshow( smp, vmin = -1, vmax = 1)
+        plt.imshow( smp )#,vmin = -1, vmax = 1)
         plt.colorbar()
         plt.title( params.desc + "\n" )
         plt.savefig( "Sample " + str(i) + ".png" )
