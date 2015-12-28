@@ -16,3 +16,4 @@
 2DFFT/
 *.log
 *optimize*
+2D/tmp*
