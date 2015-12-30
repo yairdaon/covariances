@@ -14,7 +14,7 @@ f = Constant( .0 )
 beta = helper.Beta( kappa, mesh_obj, V )
       
 # Sample variational forms
-a = inner(grad(u), grad(v))*dx + kappa*kappa*u*v*dx + inner( beta, normal )*u*v*ds
+a = inner(grad(u), grad(v))*dx + kappa*kappa*u*v*dx
 L = f*v*dx
 
 A = assemble(a)
@@ -32,8 +32,6 @@ eta.apply( b )
 sol = Function( V )
 solve(A, sol.vector(), b, 'lu')
 
-file = File( "vis.pvd")
-file << sol
     
 # Plot the solution.
 plot ( sol, interactive = True ) 

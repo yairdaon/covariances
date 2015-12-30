@@ -11,7 +11,7 @@
 *.vtu
 2D/data
 2D/ffc*
-2D/bckup*
+2D/backup*
 2D/tmp.py	
 2DFFT/
 *.log

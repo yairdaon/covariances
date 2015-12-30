@@ -8,21 +8,28 @@ class Beta(Expression):
     def __init__( self, kappa, mesh, V ):
         
         self.V = V
+        self.V2 = VectorFunctionSpace( mesh, "CG", 1, dim = 2 )
         self.mesh = mesh
         self.kappa = kappa
-
+        
         G_file = open( "G.cpp" , 'r' )  
         G_code = G_file.read()
-        
-        dGdn_file = open( "dGdn.cpp" , 'r' )  
-        dGdn_code = dGdn_file.read()
-
         self.G = Expression( G_code )
         self.G.kappa = kappa
-        
-        self.dGdn = Expression( dGdn_code )
-        self.dGdn.kappa = kappa
 
+        gradG0_file = open( "gradG0.cpp" , 'r' )  
+        gradG0_code = gradG0_file.read()
+        self.gradG0 = Expression( gradG0_code )
+        self.gradG0.kappa = kappa
+
+        gradG1_file = open( "gradG1.cpp" , 'r' )  
+        gradG1_code = gradG1_file.read()
+        self.gradG1 = Expression( gradG1_code )
+        self.gradG1.kappa = kappa
+    
+    def value_shape(self):
+        return (2,)
+    
     def eval(self, value, x ):
         '''
         y is a point on the boundary for which we calculate beta according to:
@@ -41,41 +48,30 @@ class Beta(Expression):
         if (abs(x[0]) < DOLFIN_EPS or abs(x[0]-1) < DOLFIN_EPS) or (abs(x[1]) < DOLFIN_EPS or abs(x[1]-1) < DOLFIN_EPS):
           
             self.update_x( x )
-            fe_G    = project( self.G,    self.V )
-            fe_dGdn = project( self.dGdn, self.V )
+            fe_G      = project( self.G,      self.V )
+            fe_gradG0 = project( self.gradG0, self.V )
+            fe_gradG1 = project( self.gradG1, self.V )
     
-            denominator = assemble( fe_G * fe_G    * dx )
-            enumerator  = assemble( fe_G * fe_dGdn * dx )
-            value[0] = enumerator / denominator
+            denominator  = assemble( fe_G * fe_G    * dx )
+            enumerator0  = assemble( fe_G * fe_gradG0 * dx )
+            enumerator1  = assemble( fe_G * fe_gradG1 * dx )
+
+            value[0] = enumerator0 / denominator
+            value[1] = enumerator1 / denominator
         else:
+            
             value[0] = 0.0
+            value[1] = 0.0
 
     def update_x( self, x ):
 
         self.x = x
-        self.update_xn( x )
+       
         self.G.x[0] = x[0]
         self.G.x[1] = x[1]
 
-        self.dGdn.x[0] = x[0]
-        self.dGdn.x[1] = x[1]
+        self.gradG0.x[0] = x[0]
+        self.gradG0.x[1] = x[1]
 
-        self.dGdn.xn[0] = self.xn[0]
-        self.dGdn.xn[1] = self.xn[1]
-  
-    def update_xn( self, x ):
-
-        xn = np.zeros( (2,) )
-    
-        if abs( x[0] ) < DOLFIN_EPS:
-            xn[0] = -1.0
-        elif abs( x[0] - 1 ) < DOLFIN_EPS:
-            xn[0] = 1.0
-        
-           
-        if abs( x[1] ) < DOLFIN_EPS:
-            xn[1] = -1.0
-        elif abs( x[1] - 1 ) < DOLFIN_EPS:
-            xn[1] = 1.0
-    
-        self.xn = xn / np.linalg.norm( xn )
+        self.gradG1.x[0] = x[0]
+        self.gradG1.x[1] = x[1]

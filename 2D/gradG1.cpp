@@ -13,7 +13,7 @@ namespace dolfin {
   class MyCppExpression : public Expression
   {
   public:
-    MyCppExpression() : Expression(),  kappa(), x(2), xn(2) { }
+    MyCppExpression() : Expression(),  kappa(), x(2) { }
     
     void eval(Array<double>& values, const Array<double>& y) const
     {
@@ -23,11 +23,11 @@ namespace dolfin {
 	{
 	  double r  = sqrt(  (x[0]-y[0])*(x[0]-y[0])  +  (x[1]-y[1])*(x[1]-y[1])  );
 	  double tmp = -kappa * cyl_bessel_k( 1, kappa*r ) / r;
-	  values[0]  =  tmp * (  (y[0]-x[0])*xn[0] + (y[1]-x[1])*xn[1] ); 
+	  values[0]  =  tmp * (y[1]-x[1]); 
 	}
     }
   public:
     double kappa;
-    const Array<double> x, xn;
+    const Array<double> x;
   };
 }
