@@ -10,20 +10,24 @@ using boost::math::cyl_bessel_k;
 namespace dolfin {
   
   
-  class MyCppExpression : public Expression
+  class GradG : public Expression
   {
   public:
-    MyCppExpression() : Expression(),  kappa(), x(2) { }
+    GradG() : Expression(2),  kappa(0), x(2) { }
     
     void eval(Array<double>& values, const Array<double>& y) const
     {
-      if ( abs(x[0]-y[0])< 1E-12 && abs(x[1]-y[1]) < 1E-12 )
-	values[0] = 0.0;
+      if ( abs(x[0]-y[0])< 1E-14 && abs(x[1]-y[1]) < 1E-14 )
+	{
+	  values[0] = .0;
+	  values[1] = values[0];
+	}
       else
 	{
-	  double r  = sqrt(  (x[0]-y[0])*(x[0]-y[0])  +  (x[1]-y[1])*(x[1]-y[1])  );
-	  double tmp = -kappa * cyl_bessel_k( 1, kappa*r ) / r;
-	  values[0]  =  tmp * (y[1]-x[1]); 
+	  double ra  = sqrt(  (x[0]-y[0])*(x[0]-y[0])  +  (x[1]-y[1])*(x[1]-y[1])  );
+	  double tmp = -kappa * cyl_bessel_k( 1, kappa*ra ) / ra;
+	  values[0]  =  tmp * (x[0]-y[0]); 
+	  values[1]  =  tmp * (x[1]-y[1]); 
 	}
     }
   public:

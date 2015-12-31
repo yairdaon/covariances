@@ -10,21 +10,23 @@ using boost::math::cyl_bessel_k;
 namespace dolfin {
   
   
-  class MyCppExpression : public Expression
+  class G : public Expression
   {
   public:
-    MyCppExpression() : Expression(), x(2), kappa() { }
+    G() : Expression(2), x(2), kappa(0) { }
     
     void eval(Array<double>& values, const Array<double>& y) const
     {
-      if ( abs(x[0]-y[0])<1E-12 && abs(x[1]-y[1])<1E-12 ) 
+      if ( abs(x[0]-y[0])<1E-14 && abs(x[1]-y[1])<1E-14 ) 
 	{	
-	  values[0] = 0.0;
+	  values[0] = .0;
+	  values[1] = values[0];
 	}
       else
 	{
-	  double r  = sqrt(  (x[0]-y[0])*(x[0]-y[0])  +  (x[1]-y[1])*(x[1]-y[1])  );
-	  values[0] = cyl_bessel_k(0, kappa*r);
+	  double ra  = sqrt(  (x[0]-y[0])*(x[0]-y[0])  +  (x[1]-y[1])*(x[1]-y[1])  );
+	  values[0] = cyl_bessel_k(0, kappa*ra);
+	  values[1] = values[0];
 	}
     }
   public:
