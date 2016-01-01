@@ -17,12 +17,12 @@ namespace dolfin {
     
     void eval(Array<double>& values, const Array<double>& y) const
     {
-      double ra  = sqrt(  (x[0]-y[0])*(x[0]-y[0])  +  (x[1]-y[1])*(x[1]-y[1])  );
-      if ( ra < 1E-12 ) 
-	values[0] = values[1] = 20.0;
-      else
-	values[0] = values[1] = cyl_bessel_k(0, kappa*ra);
-	 
+      /*
+	I added 1E-13 to avoid ra = 0. This addition enforces *soft* thresholding
+	which is know to be better than hard thresholding 
+      */
+      double ra  = sqrt(  (x[0]-y[0])*(x[0]-y[0])  +  (x[1]-y[1])*(x[1]-y[1])  ) + 1E-13;
+      values[0] = values[1] = cyl_bessel_k(0, kappa*ra );
     }
   public:
     const Array<double> x;
