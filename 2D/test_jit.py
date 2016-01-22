@@ -3,27 +3,29 @@ from dolfin import *
 from scipy import special as sp
 import numpy as np
 import helper
-
+import matern
 x  = np.array( [1.2  , -1.0 ] )
 y  = np.array( [0.34 , 1.1  ] )
 r = np.linalg.norm( x-y )
 
 mesh_obj = UnitSquareMesh(5,5)
 kappa = 1.27
-beta = helper.Beta( kappa, mesh_obj, 1)
+container = helper.Container( mesh_obj, kappa, 2,  deg=1 )
+
+robin = helper.Robin( container )
 
 
-beta.update_x( x )
+robin.update_x( x )
 
-jit = beta.G( y )[0]
-pyt = sp.kn(0, kappa*r )
+jit = robin.mat( y )
+pyt = container(x,y)
 print jit
 print pyt
 
 assert abs( jit - pyt ) < 1E-10
 
 ######
-jit = beta.gradG( y )
+jit = robin.gradG( y )
 pyt = -kappa * sp.kn( 1 , kappa * r ) * (x-y) / r
 print jit
 print pyt

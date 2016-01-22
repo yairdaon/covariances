@@ -5,114 +5,92 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pdb
 
-n = 201                          
-mesh_obj = UnitIntervalMesh( n-1 )
-
+class Kappa():
     
-# For notational convenience
-V = FunctionSpace( mesh_obj, "CG", 1 )
+    def __init__( self, mesh_obj, n ):
+    
+        self.n = n
+        self.mesh_obj = mesh_obj
+        
+        # For notational convenience
+        self.V = FunctionSpace( self.mesh_obj, "CG", 1 )
                                                    
-dof_coo = V.dofmap().tabulate_all_coordinates(mesh_obj)                      
-dof_coo.resize((n,))              
-#print dof_coo
+        dof_coo = self.V.dofmap().tabulate_all_coordinates(self.mesh_obj)                      
+        dof_coo.resize((n,))
+        self.dof_coo = dof_coo
 
-# All the function definitions we need
-u     = TrialFunction ( V )
-v     = TestFunction ( V )
-sol_full   = Function( V )
-sol_partial = Function( V )
+        self.var = Function( self.V )
+        self.sol = Function( self.V )
+        self.k   = Function( self.V )  
+        self.u   = TrialFunction ( self.V )
+        self.v   = TestFunction ( self.V )
+        self.L   = Constant( 0.0 )*self.v*dx
+        self.a   = inner(grad(self.u), grad(self.v))*dx + self.k*self.u*self.v*dx  
+        self.src = assemble( self.L ) 
+        PointSource( self.V, Point(0.1), 1. ).apply( self.src )
+        self.k.vector()[:] = 1.25
 
-# The killing rate
-kappa_full = Function( V )
-kappa_full.vector()[:] = 1.25
-
-kappa_partial = Function( V )
-kappa_partial.vector()[:] = 1.25
-
-
-# Holds pointwise variance values
-var_full   = Function( V )
-var_partial = Function( V )
-
-
-ff = Constant( 0.0 )
-LL = ff*v*dx
-bb = assemble( LL )
-PointSource( V, Point(0.1), 1. ).apply( bb )
-
-G = np.empty( (n,n) )
-
-
-counter = 1
-while True:
-    counter = counter + 1
-    print counter    
-    
-    a_full = inner(grad(u), grad(v))*dx + kappa_full*u*v*dx 
-    A_full = assemble(a_full)
-    
-    a_partial = inner(grad(u), grad(v))*dx + kappa_partial*u*v*dx 
-    A_partial = assemble(a_partial)
-    
-    for i in range(0,n):
+    def stop( self, count ):
         
-        pt = Point( dof_coo[i] )
-        f = Constant( 0.0 )
-        L = f*v*dx
-        b = assemble( L )
-        PointSource( V, pt, 1. ).apply( b )
-    
-        solve(A_full, sol_full.vector(), b, 'lu')
-        G[i,:] = sol_full.vector()
-        var_full.vector()[i] = sol_full.vector()[i][0]
+        if count % 500 == 0:
+            mx    = np.linalg.norm( self.var.vector() - 1.0, ord = np.inf )
+            print "Iteration " + str(count) + ". Variance Error = " + str(mx)
+            print
+            if mx < 1E-4:
+                return True
+            
+        return False
         
-        solve(A_partial, sol_partial.vector(), b, 'lu')
-        var_partial.vector()[i] = sol_partial.vector()[i][0]
+    def plot(self):
+         
+        self.A = assemble( self.a )
+        solve(self.A, self.sol.vector(), self.src, 'lu')
         
-    kappa_partial.vector()[:] = kappa_partial.vector()[:] + ( var_partial.vector() - 1 ) * np.power( var_partial.vector(),-2 )
-    kappa_full.vector()[:] = kappa_full.vector()[:] + np.linalg.solve( G * np.transpose( G ),  var_full.vector() - 1 ) 
-    
-    if counter % 1000 == 0:
-        
-        solve(A_full, sol_full.vector(), bb, 'lu')
-        solve(A_partial, sol_partial.vector(), bb, 'lu')
+        plot( self.sol, interactive = True, title = "Solution" )         
+        plot( self.var, interactive = True, title = "Variance" )
+        plot( self.k,   interactive = True, title = "kappa" ) 
 
-        file = File( "vis/kappa_full.pvd")
-        file << kappa_full 
-        file = File( "vis/var_full.pvd")
-        file << var_full
-        file = File( "vis/sol_full.pvd")
-        file << sol_full
+    def newton(self, iterations = 100, full = False):
+
+        tmp = Function( self.V )
         
-        file = File( "vis/kappa_partial.pvd")
-        file << kappa_partial 
-        file = File( "vis/var_partial.pvd")
-        file << var_partial
-        file = File( "vis/sol_partial.pvd")
-        file << sol_partial
+        if full:
+            G = np.empty( (n,n) )
+        
+        for count in range(1,iterations):
+
+            self.A = assemble(self.a)
+           
+            if self.stop(count):
+                break
        
+            for i in range( 0, self.n ):
         
-        mx_full    = np.linalg.norm( var_full.vector() - 1.0, ord = np.inf )
-        mx_partial = np.linalg.norm( var_partial.vector() - 1.0, ord = np.inf )
-        print "Error for full    factorization = " + str(mx_full)
-        print "Error for partial factorization = " + str(mx_partial)
-        print
-        if mx_full < 1E-4 or mx_partial < 1E-4:
-            break
-            
-            
-        if counter == 15000:
-            break
+                pt = Point( self.dof_coo[i] )
+                b  = assemble( self.L )
+                PointSource( self.V, pt, 1. ).apply( b )
     
+                solve(self.A, tmp.vector(), b, 'lu')
+                self.var.vector()[i] = tmp.vector()[i][0]
+                if full:
+                    G[i,:] = tmp.vector()
+            
+            if full:    
+                self.k.vector()[:] = self.k.vector()[:] + np.linalg.solve( G * np.transpose( G ), self.var.vector() - 1 ) 
+            else:
+                self.k.vector()[:] = self.k.vector()[:] + ( self.var.vector() - 1 ) * np.power( self.var.vector(), -2 )                     
     
+n = 51
+mesh_obj = UnitIntervalMesh( n-1 )
+kappa = Kappa( mesh_obj, n )
+kappa.newton(iterations = 5000)
+kappa.newton(full = True)
+kappa.plot()
+pdb.set_trace()
+# file = File( "vis/kappa.pvd")
+# file << kappa 
+# file = File( "vis/var.pvd")
+# file << var
+# file = File( "vis/sol.pvd")
+# file << sol
 
-
-#Plot the solutions.
-plot( kappa_full, interactive = True, title = "kappa, full Df" ) 
-plot( var_full,   interactive = True, title = "Variance, full Df" )
-plot( sol_full,   interactive = True, title = "Solution, full Df" ) 
-
-#Plot the solutions.
-plot( kappa_partial, interactive = True, title = "kappa, partial Df" ) 
-plot( var_partial,   interactive = True, title = "Variance, partial Df" )
-plot( sol_partial,   interactive = True, title = "Solution, partial Df" ) 
