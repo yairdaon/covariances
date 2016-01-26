@@ -10,7 +10,7 @@ import pdb
 if True:
     file_name = "lshape.xml"
     file_name = "dolfin_coarse.xml"
-    #file_name = "dolfin_fine.xml"
+    file_name = "dolfin_fine.xml"
     #file_name = "pinch.xml" 
     mesh_obj = Mesh( "meshes/" + file_name )
 else:
@@ -96,4 +96,8 @@ fi << sol_imp_rob
 plot( sol_hom_rob,   title = "homogeneous robin"   ) 
 plot( sol_inhom_rob, title = "inhomogeneous robin" ) 
 plot( sol_imp_rob,   title = "improper covariance" )
+
+plot( sol_hom_rob - sol_inhom_rob,   title = "homogeneous - inhomogeneous"   ) 
+plot( sol_hom_rob - sol_imp_rob,     title = "homogeneous - improper"        )
+plot( sol_inhom_rob - sol_imp_rob,   title = "inhomogeneous - improper"      )
 interactive()
