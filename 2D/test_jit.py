@@ -2,32 +2,35 @@
 from dolfin import *
 from scipy import special as sp
 import numpy as np
-import helper
-import matern
-x  = np.array( [1.2  , -1.0 ] )
-y  = np.array( [0.34 , 1.1  ] )
-r = np.linalg.norm( x-y )
+import parameters
+
+x  = np.array( [-1.2 , -1.0 ] )
+y  = np.array( [0.34 ,  1.1 ] )
 
 mesh_obj = UnitSquareMesh(5,5)
 kappa = 1.27
-container = helper.Container( mesh_obj, kappa, 2,  deg=1 )
+dim = 2
+nu = 1
+container = parameters.Container( mesh_obj, kappa, dim, nu )
 
-robin = helper.Robin( container )
+beta = parameters.Robin( container, param = "hom_beta" )
+beta.update( x )
+
+jit = np.array( [
+    [ beta.mat11(y) , beta.mat12(y)  ],
+    [ beta.mat12(y) , beta.mat22(y)  ]
+] )
+pyt = container.mat(x,y)
+assert np.all( abs( jit - pyt ) < 1E-10 )
 
 
-robin.update_x( x )
 
-jit = robin.mat( y )
-pyt = container(x,y)
-print jit
-print pyt
+g = parameters.Robin( container, param = "g" )
+g.update( x )
 
-assert abs( jit - pyt ) < 1E-10
-
-######
-jit = robin.gradG( y )
-pyt = -kappa * sp.kn( 1 , kappa * r ) * (x-y) / r
-print jit
-print pyt
-
-assert np.all( np.abs( jit - pyt ) < 1E-10 )
+jit = np.array( [
+    [ g.rhs11(y) , g.rhs12(y) ],
+    [ g.rhs21(y) , g.rhs22(y) ]
+] )
+pyt = container.rhs(x,y)
+assert np.all( abs( jit - pyt ) < 1E-10 )

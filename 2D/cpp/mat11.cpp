@@ -1,19 +1,13 @@
-/* 
-   Please note that this code is missing a 1/2*pi factor. It is omitted since
-   this factor cancels out in the computaition I'm doing. If you need
-   it - just add it on your own.
-*/
 #include <boost/math/special_functions/bessel.hpp>
 #include <math.h>
 using boost::math::cyl_bessel_k;
 
 namespace dolfin {
   
-  
-  class G : public Expression
+  class Mat : public Expression
   {
   public:
-    G() : Expression(2), x(2), kappa(0) { }
+    Mat() : Expression(), x(2), nu(0), kappa(0), factor(0) { }
     
     void eval(Array<double>& values, const Array<double>& y) const
     {
@@ -22,10 +16,13 @@ namespace dolfin {
 	which is know to be better than hard thresholding 
       */
       double ra  = sqrt(  (x[0]-y[0])*(x[0]-y[0])  +  (x[1]-y[1])*(x[1]-y[1])  ) + 1E-13;
-      values[0] = values[1] = cyl_bessel_k(0, kappa*ra );
+      double phi = factor * pow( kappa*ra, (double)nu ) * cyl_bessel_k( nu, kappa*ra );
+      values[0] = phi * phi;
     }
   public:
     const Array<double> x;
     double kappa;
+    int nu;
+    double factor;
   };
 }
