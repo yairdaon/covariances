@@ -80,54 +80,62 @@ class Robin(Expression):
         self.rhs22 =  self.generate( "rhs22" )
 
         self.param = param
+
+        self.dic = {}
     
     def eval(self, value, x ):
-       
-        self.update( x )
         
-        # These are the expressions every instance needs
-        fe_mat11 = interpolate( self.mat11, self.container.V )   
-        mat11 = assemble( fe_mat11 * dx )
-                
-        fe_rhs11 = interpolate( self.rhs11, self.container.V )
-        rhs11 = assemble( fe_rhs11 * dx )
-        
-        fe_rhs12 = interpolate( self.rhs12, self.container.V )
-        rhs12 = assemble( fe_rhs12 * dx )        
-        
-        if self.param == "hom_beta":
-            
-            value[0] = rhs11/mat11
-            value[1] = rhs12/mat11
-            
+        if self.dic.has_key( (x[0],x[1] ) ):
+            t = self.dic[ ( x[0], x[1] ) ]
+            value[0] = t[0]
+            value[1] = t[1]
         else:
-
-            # These expressions are only required if we use an inhomogeneous
-            # Robin boundary condition.
-            fe_rhs21 = interpolate( self.rhs21, self.container.V )
-            rhs21 = assemble( fe_rhs21 * dx )        
+            self.update( x )
         
-            fe_rhs22 = interpolate( self.rhs22, self.container.V )
-            rhs22 = assemble( fe_rhs22 * dx )
+            # These are the expressions every instance needs
+            fe_mat11 = interpolate( self.mat11, self.container.V )   
+            mat11 = assemble( fe_mat11 * dx )
+                
+            fe_rhs11 = interpolate( self.rhs11, self.container.V )
+            rhs11 = assemble( fe_rhs11 * dx )
         
-            fe_mat22 = interpolate( self.mat22, self.container.V )
-            mat22 = assemble( fe_mat22 * dx )
+            fe_rhs12 = interpolate( self.rhs12, self.container.V )
+            rhs12 = assemble( fe_rhs12 * dx )        
         
-            fe_mat12 = interpolate( self.mat12, self.container.V )
-            mat12 = assemble( fe_mat12 * dx )
+            if self.param == "hom_beta":
+                
+                value[0] = rhs11/mat11
+                value[1] = rhs12/mat11
+                        
+            else:
+
+                # These expressions are only required if we use an inhomogeneous
+                # Robin boundary condition.
+                fe_rhs21 = interpolate( self.rhs21, self.container.V )
+                rhs21 = assemble( fe_rhs21 * dx )        
+        
+                fe_rhs22 = interpolate( self.rhs22, self.container.V )
+                rhs22 = assemble( fe_rhs22 * dx )
+        
+                fe_mat22 = interpolate( self.mat22, self.container.V )
+                mat22 = assemble( fe_mat22 * dx )
+        
+                fe_mat12 = interpolate( self.mat12, self.container.V )
+                mat12 = assemble( fe_mat12 * dx )
 
 
-            det = mat11*mat22 - mat12*mat12
+                det = mat11*mat22 - mat12*mat12
             
-            if self.param == "inhom_beta":
-                value[0] = ( mat22*rhs11 - mat12*rhs21 ) / det
-                value[1] = ( mat22*rhs12 - mat12*rhs22 ) / det
+                if self.param == "inhom_beta":
+                    value[0] = ( mat22*rhs11 - mat12*rhs21 ) / det
+                    value[1] = ( mat22*rhs12 - mat12*rhs22 ) / det
         
-            elif self.param == "g":
-                value[0] = ( mat11*rhs21 - mat12*rhs11 ) / det  
-                value[1] = ( mat11*rhs22 - mat12*rhs12 ) / det
+                elif self.param == "g":
+                    value[0] = ( mat11*rhs21 - mat12*rhs11 ) / det  
+                    value[1] = ( mat11*rhs22 - mat12*rhs12 ) / det
             
-
+            self.dic[ (x[0],x[1] )] = ( value[0], value[1] )
+       
     def update( self, x ):
 
         self.x = x
