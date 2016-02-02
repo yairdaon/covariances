@@ -1,5 +1,6 @@
 import numpy as np
 from scipy import special as sp
+from scipy.linalg import sqrtm as sqrtm
 from dolfin import *
 import pdb
 import math
@@ -20,7 +21,8 @@ class Container():
         self.kappa = kappa
         self.kappa2 = kappa * kappa
         self.n = self.V.dim()
-        
+        self.sqrt_M = sqrtm( assemble( self.u*self.v*dx ).array() )
+
         # Some constants
         if nu > 0:
             self.sig2 = math.gamma( nu ) / math.gamma( nu + dim/2 ) / (4*math.pi)**(dim/2) / kappa**(2*nu) 

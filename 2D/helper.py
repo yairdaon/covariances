@@ -23,3 +23,19 @@ def apply_sources( file_name, container, b ):
         PointSource( container.V, Point ( 0.995, 0.2   ), 1. ).apply( b )
         PointSource( container.V, Point ( 0.05 , 0.005 ), 1. ).apply( b )
   
+
+def get_var( A, container, k=1000):
+    
+    n     = container.n
+    tmp   = Function( container.V )
+    noise = Function( container.V )
+    var   = Function( container.V )
+    for i in range(k):
+    
+        noise.vector().set_local( np.einsum( "ij, j -> i", container.sqrt_M, np.random.normal( size = n ) ) )
+
+        solve( A, tmp.vector(), noise.vector() )
+        var.vector().set_local( var.vector().array() + tmp.vector().array()*tmp.vector().array() )
+    
+    var.vector().set_local( var.vector().array() / k )
+    return var
