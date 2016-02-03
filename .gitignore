@@ -1,8 +1,6 @@
 *.pyc
 *~
 *.png
-/docs
-*.tex
 *.aux
 *.bbl
 *.dvi

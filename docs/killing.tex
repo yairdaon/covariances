@@ -1,0 +1,576 @@
+
+\documentclass[paper=a4, fontsize=11pt]{scrartcl} % A4 paper and 11pt font size
+
+\usepackage[T1]{fontenc} % Use 8-bit encoding that has 256 glyphs
+\usepackage[english]{babel} % English language/hyphenation
+\usepackage{amsmath,amsfonts,amsthm} % Math packages
+\usepackage{cite}
+\usepackage{graphicx}
+\usepackage{algorithm} % algorithm package
+\usepackage[noend]{algpseudocode}
+
+\usepackage{sectsty} % Allows customizing section commands
+\allsectionsfont{\centering \normalfont\scshape} % Make all sections centered, the default font and small caps
+
+\usepackage{fancyhdr} % Custom headers and footers
+\pagestyle{fancyplain} % Makes all pages in the document conform to the custom headers and footers
+\fancyhead{} % No page header - if you want one, create it in the same way as the footers below
+\fancyfoot[L]{} % Empty left footer
+\fancyfoot[C]{} % Empty center footer
+\fancyfoot[R]{\thepage} % Page numbering for right footer
+\renewcommand{\headrulewidth}{0pt} % Remove header underlines
+\renewcommand{\footrulewidth}{0pt} % Remove footer underlines
+\setlength{\headheight}{13.6pt} % Customize the height of the header
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\DeclareMathOperator*{\argmin}{arg\,min}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numberwithin{equation}{section} % Number equations within sections (i.e. 1.1, 1.2, 2.1, 2.2 instead of 1, 2, 3, 4)
+\numberwithin{figure}{section} % Number figures within sections (i.e. 1.1, 1.2, 2.1, 2.2 instead of 1, 2, 3, 4)
+\numberwithin{table}{section} % Number tables within sections (i.e. 1.1, 1.2, 2.1, 2.2 instead of 1, 2, 3, 4)
+
+\setlength\parindent{0pt} % Removes all indentation from paragraphs - comment this line for an assignment with lots of text
+
+
+
+
+
+%----------------------------------------------------------------------------------------
+% new commands
+%----------------------------------------------------------------------------------------
+\newcommand{\der}{\text{d}}
+\newcommand{\coder}[1]{\texttt{#1}}
+\newcommand{\inner}[2]{#1 \cdot #2}
+\newcommand{\var}{\text{Var}}
+\newcommand{\corr}{\text{Corr}}
+
+\title{Title TBD}
+
+\author{Yair Daon}
+\date{}
+
+\pdfinfo{%
+  /Title    ()
+  /Author   (Yair Daon)
+  /Creator  ()
+  /Producer ()
+  /Subject  ()
+  /Keywords ()
+}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+  I outline a method for solving my research problem (described below). I try to establish intuition
+  using a discrete model. Surely most of the material here is not original. I just wanted to make the
+  connection clear (at least for myself).
+\end{abstract}
+
+\section{Problem Description}
+Say you have a domain $\Omega \subseteq \mathbb{R}^d$. One would like to consider a covariance operator on the domain 
+that does not ``see'' the boundary. This means that there are no strong correlations / decorrelations close to
+the boundary. The covariance operators that are considered in this context are ``laplacian-like operators''. Their properties
+are studied by \cite{stuart2010inverse}.
+If $d=2,3$ we take $\mathcal{C} = (-\Delta + \kappa(\cdot) )^{-2}$. If $d=1$, we can take 
+$\mathcal{C} = (-\Delta + \kappa(\cdot) )^{-1}$.
+If one takes Dirichlet boundary conditions, one obeserves 
+strong decorrelations for points near the boundary. For Neumann boundary, the opposite occurs. We try 
+to remove or ameliorate these boundary effects \cite{bui2013computational}.
+
+\section{Reasoning and Intuition}
+The covariance between two sites $x,y \in \mathbb{R}^d$ is not a very good measure for the dependence 
+between them. If we denote the corresponding field by $Z( \cdot )$, then the covariance is 
+defined by $c(x,y) =\mathbb{E}[Z(x) Z(y)]$ (assuming zero mean). If $\var(x)$ is big,
+then so will be $c(x,y)$. Thus, it is better to consider correlations, since 
+these are normalized: $\corr(x,y) = \frac{c(x,y)}{\sqrt{\var(x)\var(y)}}$. My first goal, then, is to ensure
+that all pointwise variances are equal: $\var(x) \equiv C \forall x \in \Omega$ with $C \in \mathbb{R}$ a 
+constant. If this holds,
+then the covariances are on the same scale. We can then normalize easily, if'd like to.
+
+\section{Method Outline}
+Let $M$ be the mesh used. 
+Set $\var(x) \equiv 1, \forall x \in \partial \Omega$. Note that the differential 
+operator is not defined on the boundary, so these values don't really hold any meaning.
+We just use them to drive the solution. The unique solution to
+
+\begin{align*}
+\Delta u &= 0 \text{ in } \Omega\\
+ u &= 1 \text{ on } \partial\Omega \\
+\end{align*}
+ 
+is $u \equiv 1$. My idea now is to ``solve'' for the pointwise variance
+by using Jacobi (or Gauss-Seidel, Kaczmarz) iterations. I cannot change
+the pointiwse variances directly, but I can change the parameter
+field $\kappa(x)$. One Jacobi iteretion would consist of cycling through the vertices of the mesh.
+For every vertex $x_i \in M$, I would change $\kappa(x_i)$ so that $\var(x_i)$ would become the value
+a jacobi update would set. This means I change $\kappa(x_i)$ so that $\var(x_i)$ equals
+the averge of the neighbours' not updated variances. 
+
+\begin{algorithm}
+  \label{pap}
+  \caption{Implicit Jacobi}
+  \begin{algorithmic}[1]
+    \Procedure{Modify}{$\kappa, V_{old}, V_{new}, x_i$}
+    \State Returns the $\kappa_i$ that makes $\var(x_i) = V_{new}$. Details below.
+    \EndProcedure
+    \State Set $\kappa^{old}$ to some initial values $>0$.
+   
+    
+    \For {$n = 1,2,3,...$}
+    \For {$x_j \in M \cap  \mathring{\Omega} $}
+    \State $V_j \gets \var( x_j )$.
+    \EndFor
+    \For {$x_i \in M \cap  \mathring{\Omega} $}
+    \State $U \gets \frac{1}{deg(x_i)}\sum_{j \sim i} V_j$.
+    \State $\kappa^{new}_i \gets \text{Modify}(\kappa^{old}, V_i, U, x_i)$
+    \EndFor
+    \State $\kappa^{old} \gets \kappa^{new}$. 
+    \EndFor
+  \end{algorithmic}
+\end{algorithm}
+
+If the pointwise variances do approach the correct solution (i.e. $\var_n(x) \to 1, \forall x\in \Omega$ as $n \to \infty$), then we can
+hope that also
+the parameter field values $\kappa_n(x) \to \kappa^{*}(x)$. For this $\kappa^{*}(x)$, the pointwise variance field will be $1$.
+This method requires finding a way to update $\kappa(x_i)$ to induce the desired change in $\var(x_i)$.
+Changing $\kappa(x)$ will surely affect $\kappa(y)$ in other locations. This might make the method oscillate 
+and not converge. I don't know how to prove (or disprove) convergence of this method. However,
+if Jacobi's method is robust as I think it is, it can smooth out even these undesired effects.
+
+\section{Change in $\kappa(x)$ Induces a Change in $\var(x)$}
+
+\subsection{Continuous, Finite Difference and Graph Laplacians}
+In this subsection a relation between the finite difference and the graph
+laplacian is established.
+First, I would like to make the connection between the discrete mass-laplacian and the
+continuous mass-laplacian. I take the finite difference laplacian as an 
+approximation of the continuous laplacian and consider $\Omega =[0,1]$  
+for now. Discretize by taking a mesh $M = \Omega \cap \frac{1}{n} \mathbb{Z}$.
+Consider the discrete transition probability matrix of a reflected simple random walk. 
+Denote it $P$.
+
+\[
+P =
+\begin{bmatrix}
+  0            & 1            & 0           & 0              & \dots       & 0             & 0      &0            \\
+  \frac{1}{2}  & 0            & \frac{1}{2} & 0              & \dots       & 0             & 0      &0            \\   
+  0            & \frac{1}{2}  & 0           & \frac{1}{2}    & \dots       & 0             & 0      &0            \\ 
+  \vdots       & \vdots       & \vdots      & \vdots         & \ddots      & \vdots        & \vdots &\vdots       \\
+  0            & 0            & 0           &0               & \dots       & \frac{1}{2}   & 0      &\frac{1}{2}  \\
+  0            & 0            & 0           &0               & \dots       & 0             & 1      &0            
+\end{bmatrix}
+\]
+
+Denote $h = \frac{1}{n}$. The matirx of the finite difference
+laplacian (with homogeneous Neumann boundary) is:
+
+\[
+\Delta_{FD} = \frac{1}{h^2}
+\begin{bmatrix}
+  -2           & 2           & 0           & 0              & \dots       & 0             & 0      &0            \\
+  1            & -2           & 1           & 0              & \dots       & 0             & 0      &0            \\   
+  0            & 1            & -2          & 1              & \dots       & 0             & 0      &0            \\ 
+  \vdots       & \vdots       & \vdots      & \vdots         & \ddots      & \vdots        & \vdots &\vdots       \\
+  0            & 0            & 0           &0               & \dots       & 1             & -2     &1            \\
+  0            & 0            & 0           &0               & \dots       & 0             & 2      &-2           
+\end{bmatrix}
+\]
+
+Clearly $h^2\Delta_{FD} = 2(P-I)$. Assume 
+$-\Delta + \kappa \approx -[\Delta_{FD}] + \kappa$ holds in some suitable sense. Note
+that now $\kappa \in \mathbb{R}^{n \times n}$ is a diagonal matrix such that 
+$\kappa_{ii} =  \kappa(x_i)$.
+
+\begin{align*}
+  -[\Delta_{FD}] + \kappa  &= -\frac{2}{h^2}(P-I) + \kappa \\
+  %
+  %
+  &= \frac{2}{h^2}[-(P-I) + \bar{\kappa}] \\
+  %
+  %
+  %
+  &=-\frac{2}{h^2}[(P- \bar{\kappa}) -I] \\
+  %
+  %
+  %
+  &=-\frac{2}{h^2}[P_{kill} -I], \\
+  %
+  %
+  %
+\end{align*}
+
+
+where we denote
+
+\begin{align}\label{kappas}
+  \begin{split}
+    \bar{\kappa} &= \frac{h^2\kappa}{2} \\
+    P_{kill} &= P - \bar{\kappa}.
+  \end{split}
+\end{align}
+
+We interpret $\bar{\kappa}_i$ as a killing probability at the the vertex $x_i$ identified
+with the point $x_i = hi \in \Omega$. This means we take $0 < \bar{\kappa} < 1$ and
+consequently $ 0 < \kappa < \frac{2}{h^2}$. In the continuous case this restricion
+does not apply - we may
+take $\kappa$ as large as we want. However,
+as $h \to 0$ we may take $\kappa$ larger and larger and in the limit this
+restriction is removed. 
+
+\subsection{Green's Functions}
+In this subsection we define the Green's function using return counts and show
+it is the right analogy to the continuous space Green's function.
+Green's function is defined for the (killed and reflected) simple random walk on $M$ as:
+\begin{align*}
+  G_{ij}  &= \mathbb{E} [ \sum_{m=0}^{\infty} \mathbf{1}_{ \{x_j\} }( X^{x_i}_m)] \\
+  %
+  %
+  %
+  &= [\sum_{m=0}^{\infty} P_{kill}^m ]_{ij} \\
+  %
+  %
+  %
+  &= [(I - P_{kill})^{-1}]_{ij}.
+\end{align*}
+
+This relation holds since killing ensures $||P_{kill}|| < 1$. Given some $f \in C(\Omega)$, we can 
+solve the finite difference equation using the discrete Green's function. In the following derivation 
+we restrict $f$ to the given mesh and extend $G$ to the domain $\Omega$ as needed.
+
+\begin{align*}
+  u(x_i) :&=[( -\Delta_{FD} + \kappa )^{-1}f]_i \\
+  %
+  %
+  % 
+  &=\frac{h^2}{2}[(I - P_{kill})^{-1}f]_i \\ 
+  %
+  %
+  %
+  &=\frac{h^2}{2}[Gf]_i \\
+  %
+  %
+  %
+  &=\frac{h^2}{2}\sum_{j}G_{ij}f(x_j) \\
+  %
+  %
+  %
+  &\approx\int_{\Omega}G(x_i,x)f(x)dx, \\
+\end{align*}
+where $G: \Omega \times \Omega \to \mathbb{R}$ is the Green's function for $-\Delta + \kappa$ with
+homogeneous Neumann BC. The above derivation would
+change for $\Omega$ of higher dimensions - the 
+exponent of $h$ absorbed in the integral is the dimensionality of $\Omega$.
+The continuous Green's function is thus approximated as
+
+\begin{align}\label{G_cont}
+  G(x_i,x_j) &\approx \frac{h}{2} G_{ij} 
+\end{align}
+
+
+
+\subsection{Changing $\kappa_i$}
+In this subsection we calculate the change in $\kappa_i$ required
+to induce a change in $G_{ii}$. Please remeber that throughout this section,
+only $\bar{\kappa}_i$ changes. All $\bar{\kappa}_{j}$ with $j \neq i$ are held 
+fixed.
+Observe that  $\sum_{m=0}^{\infty} \mathbf{1}_{ \{x_i\} }(X^{x_i}_m)$ 
+is a geometric random variable. It counts
+the number of successes (returning to $x_i$). The walker eventually dies, hence a failure occurs. 
+It is known that if we denote the probability of success by $p$, then the
+expected value of the corresponding geometric Random variable is $\frac{1}{p}$. 
+By this observation,
+the return probability is $\frac{1}{G_{ii}}$. 
+
+Denote:
+\begin{align*}
+  % \begin{split}
+  A_{ij} :&= \{ \exists m \ s.t \ X^{x_i}_m = x_j \} \\
+  &= \{ \text{reach $x_j$ from $x_i$} \}\\
+  B_i :&= \{ X^{x_i}_1 \in M \} \\
+  &=\{\text{Walker not killed upon leaving $x_i$} \}\\
+  %\end{split}
+\end{align*}
+
+Observe: $\mathbb{P}(A_{ij}|B^{c}_i ) = 0,\ \forall j$, $\mathbb{P}(B_i) = 1-\bar{\kappa}_{i}$
+and $\mathbb{P}(A_{ji})$ does not depend on $\bar{\kappa}_{i}$.
+
+\begin{align}\label{eq1}
+  \begin{split}
+  \frac{1}{G_{ii}} &= \mathbb{P}( A_{ii} ) \\
+  %
+  %
+  %
+  %
+  &= \mathbb{P}( A_{ii} | B_i) \mathbb{P}(B_i ) +  \mathbb{P}( A_{ii} | B^{c}_i) \mathbb{P}(B^{c}_i ) \\ 
+  % 
+  % 
+  %
+  % 
+  &=  \mathbb{P}( A_{ii}|B_i ) (1- \bar{\kappa}_i) \\
+  \end{split}
+\end{align}
+
+Note $\mathbb{P}(A_{ii} |B_i )$ is independent of the value of $\bar{\kappa}_i$.
+So, if we only change $\bar{\kappa}_i$, the factor $\mathbb{P}(A_{ii}|B_i)$ is fixed.
+We conclude that $G_{ii}$ is inversely proportional
+to the survival probability upon leaving $x_i$: $G_{ii} \propto (1-\bar{\kappa}_i)^{-1}$.
+This gives a simple relation when updating $\bar{\kappa}_i$,
+
+\begin{align*}
+\frac{G^{old}_{ii}}{G^{new}_{ii}} &= \frac{ 1 - \bar{\kappa}^{new}_i }{ 1 - \bar{\kappa}^{old}_i}.
+\end{align*}
+
+We can use this result to get a relation for all $j$'s:
+
+\begin{align*}
+  \frac{G^{old}_{ji}}{G^{new}_{ji}} &= \frac{ \mathbb{E}^{old} [ \sum_{m=0}^{\infty} \mathbf{1}_{ \{x_i\} }( X^{x_j}_m)] }
+    { \mathbb{E}^{new} [ \sum_{m=0}^{\infty} \mathbf{1}_{ \{x_i\} }( X^{x_j}_m)] } \\
+    %
+    %
+    %
+    &=  \frac{\mathbb{P}^{old}(A_{ji}) \mathbb{E}^{old} [ \sum_{m=0}^{\infty} \mathbf{1}_{ \{x_i\} }( X^{x_i}_m)] }
+    { \mathbb{P}^{new}(A_{ji})\mathbb{E}^{new} [ \sum_{m=0}^{\infty} \mathbf{1}_{ \{x_i\} }( X^{x_i}_m)] } \\
+    %
+    %
+    %
+    &=\frac{G_{ii}^{old}}{G_{ii}^{new}} \\
+    %
+    %
+    %
+    &= \frac{ 1 - \bar{\kappa}^{new}_i }{ 1 - \bar{\kappa}^{old}_i}.
+\end{align*}
+
+Hence:
+
+\begin{align}\label{relation}
+\frac{G^{old}_{ji}}{G^{new}_{ji}} &= \frac{ 1 - \bar{\kappa}^{new}_i }{ 1 - \bar{\kappa}^{old}_i} \text{ for fixed $i$ and $\forall j$.}
+\end{align}
+
+Do the other way:
+
+\begin{align*}
+  \frac{G_{ij}^{old}}{G_{ij}^{new}} &=  \frac{ \mathbb{E}^{old} [ \sum_{m=0}^{\infty} \mathbf{1}_{ \{x_j\} }( X^{x_i}_m)] }
+    { \mathbb{E}^{new} [ \sum_{m=0}^{\infty} \mathbf{1}_{ \{x_j\} }( X^{x_i}_m)] } \\
+    %
+    %
+    %
+    &=  \frac{\mathbb{P}^{old} (A_{ij})\mathbb{E}^{old} [ \sum_{m=0}^{\infty} \mathbf{1}_{ \{x_j\} }( X^{x_j}_m)] }
+    { \mathbb{P}^{new}(A_{ij})\mathbb{E}^{new} [ \sum_{m=0}^{\infty} \mathbf{1}_{ \{x_j\} }( X^{x_j}_m)] } \\
+    %
+    %
+    % 
+    &=  \frac{\mathbb{P}^{old}(A_{ij}) G_{jj}^{old} }
+    { \mathbb{P}^{new}(A_{ij})G_{jj}^{new}}
+    %
+    %
+    % 
+    % 
+\end{align*}
+
+
+
+It is unfortunate that we get $G_{ij} \neq G_{ji}$.
+
+
+
+
+
+
+
+
+\subsection{A Recipe for Changing $G(\cdot,\cdot)$}
+In this section we find the change we need to make to $\kappa_{i}$ in order
+to induce a change in $G(x_i,x_i)$.
+Or:
+$$
+\bar{\kappa}^{new}_i = 1 -  (1 - \bar{\kappa}^{old}_i)\frac{G^{old}_{ii}}{G^{new}_{ii}}.
+$$
+
+Recall that we have the restricition $0 < \bar{\kappa}_i < 1$. We want to know
+if and how can it be violated. $\bar{\kappa}^{new}_i \geq 1$ would require $\bar{\kappa}^{old}_i \geq 1$ which is impossible
+if the old $\bar{\kappa}$ satisfies the restricitons
+(Green's functions are positive by definition in our case). 
+$\bar{\kappa}^{new}_i \leq 0$ would require
+
+\begin{align}\label{criterion_disc}
+G^{new}_{ii} \leq (1 - \bar{\kappa}^{old}_i)G^{old}_{ii}.
+\end{align}
+
+Note that this is reasonable: according to \eqref{eq1} (used for the old and the new $\bar{\kappa}$)
+this means that the probability to return with $\bar{\kappa}_{new}$ is not smaller than the
+probability to return having survived leaving $x_i$. Since we only changed $\bar{\kappa}_i$,
+this will only hold if the new killing probability in $x_i$ is exactly zero. So anyone who asks 
+us to make $G_{ii}$ violate the criterion in \eqref{criterion_disc}, really asks us to violate 
+the rules of probability (or change our model to allow births of new walkers).
+
+Translating these results to the continuous space uses only  \eqref{kappas}. The
+factor for the Green's function in \eqref{G_cont} is conveniently cancelled.
+
+\begin{align*}
+  \kappa^{new}_i &= \frac{2}{h^2} \bar{\kappa}^{new}_i \\
+  %
+  %
+  %
+  &= \frac{2}{h^2}[1 -  (1 - \bar{\kappa}^{old}_i)\frac{G^{old}_{ii}}{G^{new}_{ii}}] \\
+  %
+  %
+  %
+  &= \frac{2}{h^2} -  (\frac{2}{h^2} - \kappa^{old}_i)\frac{G^{old}(x_i,x_i)}{G^{new}(x_i,x_i)}] \\
+  %
+  %
+  %
+  &= \frac{2}{h^2}(1-\frac{G^{old}(x_i,x_i)}{G^{new}(x_i,x_i)}) + \kappa^{old}_i\frac{G^{old}(x_i,x_i)}{G^{new}(x_i,x_i)}], \\
+\end{align*}
+
+with the restriction that
+
+
+\begin{align}\label{criterion_cont}
+G^{new}(x_i,x_i) > ( 1 - \frac{h^2\kappa^{old}_i}{2})G^{old}(x_i,x_i).
+\end{align}
+
+\section{Method Convergence}
+I need to show this method converges, despite the global effects every change induces.
+I did not give it much thougt yet but it looks like it is going to be hard.
+
+
+\section{Newton's Method}
+In this section I remove the bar from $\bar{\kappa}$
+for convenience.
+Define $f_{i}(\kappa) :=\var( x_i | \kappa) -1$. We 
+are looking for a zero of this function. These are $n$ equations
+in $n$ unknowns. Lets find the Jacobian.
+
+\begin{align*}
+  %
+  %
+  %
+  [Df(\kappa)]_{ij} &= \frac{ \partial f_{i}(\kappa)}{\partial \kappa_j} \\
+  %
+  %
+  %
+  &= \frac{ \partial \var( x_i |\kappa)}{\partial \kappa_j} \\
+  %
+  %
+  %
+  %
+  &= \frac{ [\partial (P - \kappa - I)^{-1}]_{ii}}{\partial \kappa_j} \\
+  %
+  %
+  % 
+  %
+  %
+  %
+  &= [-(P-\kappa - I)\frac{ \partial (P - \kappa - I)}{\partial \kappa_j}(P- \kappa - I)]_{ii} \\
+  %
+  %
+  % 
+  % 
+  %
+  %
+  %
+  &= [(P-\kappa - I)E^{jj}(P- \kappa - I)]_{ii} \\
+  %
+  %
+  %
+  %
+  &= \sum_{s,t} (P-\kappa - I)_{is}E^{jj}_{st}(P- \kappa - I)_{ti} \\
+  %
+  %
+  %
+  %
+  &= (P-\kappa - I)_{ij}(P- \kappa - I)_{ji} \\
+  %
+  %
+  %
+  &=
+    \begin{cases}
+      (\kappa_i + 1)^2 & i = j\\
+      P_{ij}P_{ji} & i \sim j \\
+      0 & o.w.
+    \end{cases} 
+\end{align*}
+
+This matrix is sparse and can be stored in memory in $\mathcal{O}(n)$ space and solved 
+in similar time. We can easily calculate 
+
+$$
+\kappa_{m+1} = \kappa_{m} - (Df(\kappa_{m}))^{-1} f(\kappa_{m})
+$$
+
+and hope for convergence.
+
+% \section{Intuition on Killing}
+
+% Consider a brownian particle in $\Omega$.
+% Assume the browinan particle is killed with a stopping time $\tau$.
+%  This can mean it is killed upon hitting the boundary ( $\Rightarrow$
+% Dirichlet BC).
+%  It can also mean it is killed at another, independent time and is reflected from the boundary.
+% The Green's measure
+% is the amount of time the brownian particle spends at a set is:
+% $$
+% G(x,H) = \mathbb{E}^{x}[ \int_{0}^{\tau} \mathbf{1}_{H}( X_t ) dt], \ H \text{ is Borel. }
+% $$ 
+
+% This happens to be absolutely continuous wrt Lebesgue mesure. 
+
+% $$
+% G(x,f) = \int G(x,y) f(y) = \mathbb{E}^{x}[ \int_{0}^{\tau} f( X_t ) dt],
+% $$
+
+% where $G(x,y) = \frac{d G(x, \cdot)}{d\lambda}(y)$.
+% This Green's function is the same as the Green's function for the
+% (negative of) the generator.
+
+% I now refer to a remark in Oksendal (page 145). Consider an Ito process 
+
+% $$
+% dX_t = b(X_t) dt + \sigma(X_t) dB_t.
+% $$
+
+% This process has an infinitesimal generator 
+
+% $$
+% L = \frac{1}{2} \sum \sigma_i \sigma_j \frac{\partial^2}{\partial x_i \partial x_j} + \sum b_i \frac{\partial}{\partial x_i}.
+% $$
+
+% For 2D BM, the process is trivially $dX_t = dB_t$ and the generator is
+% $$
+% L = \frac{1}{2} \Delta.
+% $$
+
+% If the process is killed at rate $c(x)$, meaning that:
+
+% $$
+% c(x) = \lim_{t \to 0^{+}} \frac{1}{t} Q^{x}[ X_0 \text{ is killed in the time interval } (0,t] ],
+% $$
+
+% where $Q^{x}$ is the probability measure for the BM starting at $x$. For such a process, the
+% generator becomes
+
+% $$
+% L_{killed} = \frac{1}{2} \sum \sigma_i \sigma_j \frac{\partial^2}{\partial x_i \partial x_j} + \sum b_i \frac{\partial}{\partial x_i} - \kappa(x),
+% $$
+
+% This, in the BM case, simplifies to 
+
+% $$
+% L_{killed} = \frac{1}{2} \Delta - \kappa(x).
+% $$
+
+% With this interpretation in mind, we have more insight as to the role of the parameter $\kappa$ and how to change it.
+% If we use Neumann BC, then we need to apply faster killing of the process in regions that 
+% are very close to the boundary. 
+% Otherwise, the process reflects from the boundary and creates high correlations in nearby sites as it visits them repeatedly.
+% This can be easily seen by the definition of the Green's function above.
+
+
+\bibliography{refs.bib}
+\bibliographystyle{unsrt}
+\end{document}
+

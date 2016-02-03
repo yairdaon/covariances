@@ -1,0 +1,529 @@
+
+\documentclass[paper=a4, fontsize=11pt]{scrartcl} % A4 paper and 11pt font size
+
+\usepackage[T1]{fontenc} % Use 8-bit encoding that has 256 glyphs
+\usepackage[english]{babel} % English language/hyphenation
+\usepackage{amsmath,amsfonts,amsthm} % Math packages
+\usepackage{cite}
+\usepackage{graphicx}
+\usepackage{algorithm} % algorithm package
+\usepackage[noend]{algpseudocode}
+
+\usepackage{sectsty} % Allows customizing section commands
+\allsectionsfont{\centering \normalfont\scshape} % Make all sections centered, the default font and small caps
+
+\usepackage{fancyhdr} % Custom headers and footers
+\pagestyle{fancyplain} % Makes all pages in the document conform to the custom headers and footers
+\fancyhead{} % No page header - if you want one, create it in the same way as the footers below
+\fancyfoot[L]{} % Empty left footer
+\fancyfoot[C]{} % Empty center footer
+\fancyfoot[R]{\thepage} % Page numbering for right footer
+\renewcommand{\headrulewidth}{0pt} % Remove header underlines
+\renewcommand{\footrulewidth}{0pt} % Remove footer underlines
+\setlength{\headheight}{13.6pt} % Customize the height of the header
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\DeclareMathOperator*{\argmin}{arg\,min}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numberwithin{equation}{section} % Number equations within sections (i.e. 1.1, 1.2, 2.1, 2.2 instead of 1, 2, 3, 4)
+\numberwithin{figure}{section} % Number figures within sections (i.e. 1.1, 1.2, 2.1, 2.2 instead of 1, 2, 3, 4)
+\numberwithin{table}{section} % Number tables within sections (i.e. 1.1, 1.2, 2.1, 2.2 instead of 1, 2, 3, 4)
+
+\setlength\parindent{0pt} % Removes all indentation from paragraphs - comment this line for an assignment with lots of text
+
+
+
+
+
+%----------------------------------------------------------------------------------------
+% new commands
+%----------------------------------------------------------------------------------------
+\newcommand{\der}{\text{d}}
+\newcommand{\coder}[1]{\texttt{#1}}
+\newcommand{\inner}[2]{#1 \cdot #2}
+\newcommand{\Op}{\mathcal{L}}
+
+\title{Gaussian measures with an operator that ignores the boundary as covariance}
+
+\author{Yair Daon}
+\date{}
+
+\pdfinfo{%
+  /Title    ()
+  /Author   (Yair Daon)
+  /Creator  ()
+  /Producer ()
+  /Subject  ()
+  /Keywords ()
+}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+\end{abstract}
+
+\section{Problem statement}
+Say one has a domain $\Omega \subseteq \mathbb{R}^d$. One would like to consider a covariance operator on the domain 
+that does not ``see'' the boundary. This means that there are no strong correlations / decorrelations close to
+the boundary. The covariances that are considered in this context are ``laplacian-like operators''. Their properties
+are studied by \cite{stuart2010inverse}.
+We try to take $(-\Delta + \kappa^2 )^{-p}$, where $\kappa^2 > 0$
+and $p$ staisfies the restriction stated by \cite{stuart2010inverse}. Usually $p > \frac{d}{2}$,
+where $d$ is the dimensionality defined above. If one takes Dirichlet boundary conditions, one obeserves 
+strong decorrelations for points near the boundary. For Neumann boundary, the opposite occurs. We try 
+to remove or ameliorate these boundary effects \cite{bui2013computational}.
+
+Below, a Robin BC approach is considered. We seek a boundary condition of the Robin family that performs well (in some sense to be defined).
+The term fundamental solution is reserved for the free space Green's function of a differential operator. The term Green's function 
+is reserved exclusively for the one arising from a differential operator on a domain with prescribed boundary conditions.
+
+\section{General Info}
+
+\subsection{Fundamental Solution and Green's Funciton}
+Fix $\kappa,d, y\in \Omega$ and $\beta > 0$. Denote $G$ the Green's function. 
+\begin{align}
+  \begin{split}
+    &(-\Delta_{x} + \kappa^2 ) G(x,y) = \delta_{y}(x),  x \in  \Omega, \\
+    &\beta G(x,y) + \frac{\partial G}{\partial n_{x}}(x,y) = 0, x \in \partial \Omega, 
+  \end{split}
+\end{align}
+
+which can be shown to be symmetric. With the same notation, define the fundamental solution
+
+\begin{align}
+  \begin{split}
+    (-\Delta_{x} + \kappa^2) \Phi(x,y) &= \delta_{y}(x), x \in \mathbb{R}^d. \\
+  \end{split}
+\end{align}
+It will be clear from the context which operator is being used.
+% \subsection{Known Results for $d = 1,2,3$}
+
+% It is known that:
+% \begin{itemize}
+% \item If $d = 1$, then $\Phi(x,y) = \frac{ \exp( -\kappa||x-y|| )}{2\kappa}$. To see this, take WLOG $y=0$ and $\Phi(x) = \frac{\exp(-\kappa |x| )}{2\kappa}$. 
+%   \begin{align}
+%     \begin{split}
+%       \kappa \frac{d^{2}m}{dx^2} &= \frac{d}{dx} [-\kappa H(x) \exp( -\kappa |x|)] \\
+%       %
+%       %
+%       %
+%       & = (-\kappa H(x))^2 \exp( -\kappa |x| ) -\kappa \exp(-\kappa |x| ) \delta (x) \\ 
+%       % 
+%       %
+%       %
+%       & = \kappa^2 \exp( -\kappa |x| ) -\kappa \exp(-\kappa |x| ) \delta (x) \\   
+%     \end{split}
+%   \end{align}
+%   and it is easy to see now that $(-\Delta + \kappa^2) \Phi(x) = \delta (x)$. 
+% \item If $d = 2$, then $\Phi(x,y) = \frac{1}{2\pi} K_{0}( \kappa ||x-y|| ) $ \cite{wikifundamental}. By
+%   \cite[page 79, number (7)]{watson1995treatise}, $\frac{dK_{0}(x)}{dx} = -K_{1}(x) = -K_{-1}(x)$. Also
+%   \begin{align*}
+%     \nabla_{x} \Phi(x,y) &= \nabla_{x} \frac{1}{2\pi} K_{0}( \kappa ||x-y|| )\\
+%     &= -\frac{\kappa}{2\pi} K_{1}( \kappa ||x-y|| ) \nabla_{x}||x-y|| \\
+%     &= -\frac{\kappa}{2\pi} K_{1}(\kappa ||x-y|| ) \frac{x-y}{||x-y||}
+%   \end{align*}
+%   \item If $d = 3$, then $\Phi(x,y) = \frac{ \exp( -\kappa||x-y|| )}{4\pi||x-y||}$ \cite{wikifundamental}.
+% \end{itemize}
+
+\subsection{Matern as a Fundamental Solution}
+It is known \cite{lindgren2011explicit} that the fundamental solution in $\mathbb{R}^d$ of
+
+$$
+(-\Delta + \kappa^2)^{ \nu + d/2 }
+$$
+
+is:
+
+$$
+m(x,y; \kappa, \nu ) = \frac{\sigma^2}{2^{\nu-1}\Gamma(\nu)} (\kappa||x-y||)^{\nu} K_{\nu}( \kappa||x-y||), 
+$$
+
+with $\nu, \kappa > 0$ and
+
+$$
+\sigma^2 = \frac{\Gamma(\nu)}{\Gamma(\nu + d/2) (4\pi)^{d/2} \kappa^{2\nu}}.
+$$
+
+Note that by the identity below, if $\nu \in \mathbb{Z}$
+
+\begin{align}\label{grad_matern}
+  \begin{split}
+  \nabla_{y} m( x,y; \kappa, \nu ) &= \nabla_{y} \frac{\sigma^2}{2^{\nu-1}\Gamma(\nu)} (\kappa||x-y||)^{\nu}K_{\nu}(\kappa||x-y||) \\
+  %
+  %
+  %
+  &= -\frac{\sigma^2}{2^{\nu-1}\Gamma(\nu)} (\kappa||x-y||)^{\nu}K_{\nu-1}(\kappa||x-y||) \nabla_{y} \kappa||x-y|| \\
+  % 
+  %
+  %
+  &= \kappa\frac{\sigma^2}{2^{\nu-1}\Gamma(\nu)} (\kappa||x-y||)^{\nu}K_{\nu-1}(\kappa||x-y||) \frac{x-y}{||x-y||} \\
+  \end{split}
+\end{align}
+
+\subsection{Identities}
+
+\begin{align}\label{diff}
+  \frac{\text{d}}{\text{d}x} (x^{\nu} K_{\nu}(x)) &= -x^{\nu}K_{\nu-1}(x), \ \forall \nu \in \mathbb{Z}
+\end{align}
+
+
+
+
+\begin{align*}
+  \begin{split}
+    \int_{\Omega} u( \kappa^2 - \Delta) v - v( \kappa^2 - \Delta) u &= \int_{\Omega} v\Delta u - u\Delta v\\
+    % 
+    % 
+    % 
+    &= \int_{\partial \Omega } v\frac{\partial u}{\partial n} - u \frac{\partial v}{\partial n}\\
+\end{split}
+\end{align*}
+
+% \subsection{Representation Formula}
+% We want to find the solution to
+% \begin{align*}
+%   &(-\Delta + \kappa^2 ) u = f \text{ in } \Omega, \\
+%   &\beta u + \frac{\partial u}{\partial n}=0  \text{ in } \partial \Omega. 
+% \end{align*}
+
+% Fix $y\in \Omega$. From the (modified) Green's identity above:
+
+% \begin{align*}
+%     u(y) &= \int_{\Omega} u(x) \delta_y(x) dx \\
+%     % 
+%     % 
+%     % 
+%     &= \int_{\Omega}  u(x)(-\Delta_{x} +\kappa^2 )G(x,y) dx \\
+%     % 
+%     % 
+%     % 
+%     & = \int_{\Omega} G(x,y) f(x) dx + \int_{\partial\Omega} G(x,y) \frac{\partial u}{\partial n_{x}} - u(x) \frac{\partial G(x,y)}{\partial n_{x}} dS(x) \\
+%     % 
+%     % 
+%     % 
+%     & = \int_{\Omega} G(x,y) f(x) dx + \int_{\partial\Omega}   G(x,y) (-\beta u(x)) - u(x) \frac{\partial G(x,y)}{\partial n_{x}} dS(x) \\
+%     % 
+%     % 
+%     % 
+%     & = \int_{\Omega} G(x,y) f(x) dx - \int_{\partial\Omega} u(x) [ \beta  G(x,y)  + \frac{\partial G(x,y)}{\partial n_{x}} ] dS(x) \\
+%     %
+%     %
+%     % 
+%     & = \int_{\Omega} G(x,y) f(x) dx,
+% \end{align*}
+
+% which is the required representation formula. The third equality is sometimes called the Kirchhoff- Helmholtz representation.
+% This is indeed the solution we saught: 
+% \begin{align}
+%   \begin{split}
+%     %
+%     % 
+%     % 
+%     (-\Delta_{y} + \kappa^2 ) u(y) &= \int_{\Omega} (-\Delta_{y} +\kappa^2 )G(x,y)f(x)dx \\
+%     %
+%     % 
+%     % 
+%     & = \int_{\Omega} \delta_{x}(y) f(x)dx \\
+%     %
+%     % 
+%     % 
+%     & = \int_{\Omega} \delta_{0}(x-y) f(x)dx \\ 
+%     % 
+%     % 
+%     % 
+%     & = f(y) \text{ for } y \in \Omega\\
+%     %
+%     % 
+%     % 
+%     \beta u(y) & =\int_{\Omega}  \beta G(x,y)f(x)dx \text{ (now } y\in \partial \Omega).\\
+%     %
+%     % 
+%     % 
+%     & =- \int_{\Omega} \frac{\partial G}{\partial n_{y}}f(x)dx \\
+%     %
+%     % 
+%     % 
+%     & =- \frac{\partial}{\partial n_{y}}  \int_{\Omega} G(x,y)f(x)dx \\
+%     %
+%     % 
+%     % 
+%     & =- \frac{\partial u} {\partial n}(y) 
+%   \end{split}
+% \end{align}
+
+
+\subsection{Variational Formulation}
+Take $I[u] = \frac{1}{2}\int_{\Omega} ||\nabla u||^{2} + \frac{1}{2}\kappa^{2}u^2 - fu + \frac{1}{2}\int_{\partial \Omega} \beta( u-\frac{g}{\beta})^2, \beta > 0$ and define
+$i(\tau) = I[u + \tau v]$, with $u,v \in H^{1}(\Omega)$. Note that if $\beta < 0$ then $I$ is not bounded below, so the minimization
+problem we consider shortly makes no sense.
+
+\begin{align*}
+  i(\tau) &= I[u + \tau v ] \\
+  %
+  %
+  % 
+  &= \frac{1}{2}\int_{\Omega} ||\nabla (u+ \tau v)||^{2} + \frac{1}{2}\kappa^{2}(u+ \tau v)^2 - f(u + \tau v) + \frac{1}{2}\int_{\partial \Omega} \beta(u- \frac{g}{\beta}+ \tau v)^2 \\
+  %
+  %
+  %
+  &= I[u] + \tau ( \int_{\Omega} \nabla u \cdot \nabla v + \kappa^{2}uv - fv + \int_{\partial \Omega} \beta( u - \frac{g}{\beta}) v ) +\mathbf{o} (\tau)\\
+  % 
+  %
+  %
+  &= I[u] + \tau ( \int_{\Omega} \nabla u \cdot \nabla v + \kappa^{2}uv - fv + \int_{\partial \Omega} (\beta u - g) v ) +\mathbf{o} (\tau).\\ 
+\end{align*}
+
+If $u$ is indeed a minimum for $I$ , then $i'(0) = 0$. The corresponding variational problem is:
+
+\begin{align*}
+\int_{\Omega} \nabla u \cdot \nabla v + \kappa^{2}uv + \int_{\partial \Omega} \beta u v  =\int_{\Omega} fv +\int_{\partial \Omega} gv. 
+\end{align*}
+
+Formally integrating the first term by parts gives:
+$$
+\int_{\Omega}  (-\Delta u + \kappa^{2} u) v + \int_{\partial \Omega} ( \beta u + \frac{ \partial u }{\partial n } )v = \int_{\Omega} fv + \int_{\partial \Omega} gv.
+$$
+We see the Robin condition arises naturally from the minimization of $I$. 
+
+
+% \section{1D Solution}
+% Recall that the fundamental solution for $-\Delta + \kappa^{2}$ on $\mathbb{R}$ is $\Phi(x,y) = \frac{\exp( -\kappa |x-y| ) }{2\kappa}$.
+% Fix $y \in \Omega := (0,1)$ and define $\bar{m}:=  m - G$,  Evans calls this a corrector function. 
+% Consider a homogeneous Robin boundary condition
+% for $G$ on $\partial \Omega$ so that $\beta G + \frac{ \partial G}{\partial n_{x}} = 0$.
+% Once we plug in $\bar{m} = m - G$. we see that $\bar{m}$ satisfies:
+
+% \begin{align}
+%   \begin{split} 
+%     (-\Delta_{x} + \kappa^2)\bar{m}(x,y) &= 0, \forall x\in \Omega \\
+%     %
+%     %
+%     %     
+%     \beta\bar{m}(x,y) + \frac{\partial \bar{m}}{\partial n_{x}}(x,y) &= \beta \Phi(x,y) + \frac{\partial m}{\partial n_{x}}(x,y), \forall x \in \partial \Omega.
+%   \end{split}
+% \end{align}
+% On $\partial \Omega = \{0,1\}$ we observe that
+
+% \begin{align}
+%   \begin{split}
+%     \beta \Phi(0,y) + \frac{\partial m}{\partial n_{x}}|_{x=0}(0,y) &= \frac{1}{2}\exp( -\kappa y)[ \frac{\beta}{\kappa} - 1] \\
+%     %
+%     %
+%     %
+%     \beta \Phi(1,y) + \frac{\partial m}{\partial n_{x}}|_{x=1}(1,y) &= \frac{1}{2} \exp (-\kappa (1-y)) [\frac{\beta}{\kappa} - 1 ].\\
+%   \end{split}
+% \end{align}
+
+% Setting $\beta = \kappa$, conclude that $\bar{m}$ satisfies
+
+% \begin{align}
+%   \begin{split}
+%     (-\Delta_{x} + \kappa^2 ) \bar{m}(x,y) &= 0 , x\in \Omega \\
+%     % 
+%     % 
+%     % 
+%     \kappa \bar{m}(x,y) + \frac{\partial \bar{m}}{\partial n_{x}}(x,y) &= 0 , x\in \partial \Omega.\\
+%   \end{split}
+% \end{align}
+
+% Thus, $m - m_{\kappa} = \bar{m} \equiv 0$ and we have a perfect solution.
+
+\section{Optimization Problem}
+
+% \subsection{Formulation and motivation}
+% In higher dimensions, we don't expect to have a perfect matching so we turn to approximations. For $x\in \partial \Omega$,
+% one such possible approximation may be found by solving
+
+% \begin{align}
+%   \begin{split}
+%     \beta^{*}(x) :&= \argmin_{\beta > 0} \frac{1}{2} \int_{\Omega} (\beta \Phi(x,y) + \frac{\partial m}{\partial n_{x}} )^{2} dy \\
+%     % 
+%     % 
+%     % 
+%     &= \argmin_{\beta > 0} \frac{\beta^2}{2} \int_{\Omega} m^2(x,y) dy+\beta \int_{\Omega} \Phi(x,y) \frac{\partial m}{\partial n_{x}} dy. \\
+%   \end{split}
+% \end{align}
+
+% The idea is simple - instead of making the right hand side of the boundary condition zero, we seek to make it as small as possible for 
+% every $x\in \partial \Omega$. This quadratic has a minimum $\hat{\beta}(x) \in \mathbb{R}$ since its leading coefficient 
+% is positive. The minimum is found to be:
+
+% $$
+% \hat{\beta}(x) = - \frac{\int_{\Omega}  \Phi(x,y) \frac{\partial m}{\partial n_{x}} dy}{\int_{\Omega}  m^2(x,y) dy}.
+% $$
+
+% Recall that for a fixed $x$:
+
+% $$
+% \nabla_x\Phi(x,y) = -\frac{\kappa}{2\pi} K_1( \kappa ||x-y|| ) \frac{x-y}{||x-y||}.
+% $$
+
+% \subsection{Issue of Integrability}
+% First, check the integrability of the above enumerator and denominator. Take WLOG $0=x\in \partial \Omega$ and consider half of the ball $B(0,\epsilon)$.
+% Since integtrability doesn't change if we take half of the ball or all of it, we just integrate in $y\in B(0,\epsilon)$. We take the boundary
+% of our domain s.t.  $\hat{n}_x = (-1,0,0)^t$.  If we take $\epsilon$ small enough, we can ignore $\kappa$, which will make the calculations
+% easier. Below, $C$ denotes a positive constant we don't care about. The constant can change between lines. 
+% Start with 3D problem and recall that in spherical coordinates $dy = r^2 \sin \theta dr d\theta d \phi$:
+
+% \begin{align*}
+%     \int_{B(0,\epsilon)} |m^2(y,0)|dy &= C\int_{B(0,\epsilon)} \frac{1}{||y||^2} dy \\
+%     &= C \int_{0}^{\epsilon} \frac{r^2}{r^2} dr \\
+%     &= C < \infty \\
+%     \int_{B(0,\epsilon)} |\Phi(0,y) \frac{\partial \Phi(0,y)}{\partial n_x}| dy &= C\int_{B(0,\epsilon)} |\frac{1}{||y||} (-\frac{1}{||y||^2} \frac{-y\cdot (-1,0,0)^t}{||y||})| dy\\
+%     &= C \int_{0}^{\epsilon} \frac{r }{r^4}r^2  dr  \\
+%     &= C \int_{0}^{\epsilon} \frac{1}{r} dr \\
+%     &= C \log r|_{r=0}^{r=\epsilon} \\
+%     & = \infty,
+% \end{align*}
+
+% Now the 2D problem. Recall that in polar coordinates $dy = r\sin \theta dr d\theta$:
+
+% \begin{align*}
+%      \int_{B(0,\epsilon)} |m^2(y,0)|dy &= C \int_{B(0,\epsilon)} \log^2||y|| dy \\
+%     &= C \int_{0}^{\epsilon} r \log^2 r dr \\
+%     &= C < \infty, \\
+%     \int_{B(0,\epsilon)} |\Phi(0,y) \frac{\partial \Phi(0,y)}{\partial n_x}| dy &= C \int_{B(0,\epsilon)} |\log||y|| (\frac{1}{||y||} \frac{-y\cdot (-1,0)^t}{||y||})| dy\\
+%     &= C\int_{0}^{\epsilon} |\log r\frac{r }{r^2}r| dr\\
+%     &= C \int_{0}^{\epsilon} |\log r| dr \\
+%     &= -C(r \log |r| - r)|_{0}^{\infty} < \infty.
+% \end{align*}
+
+% The above problem is uninformative in 3 dimensions but has a solution in 2 dimensions.
+
+
+%\subsection{An Optimization Problem}
+Consider a differential operator $\Op$ with some BC. For $x\in \partial \Omega$, we'd like to find a BC 
+such that $G(x,y) \approx \Phi(x,y)$. We may use an inhomogeneous Robin boundary condition,
+$u + \beta \frac{\partial u}{\partial n} = g$ and take $\Op = (-\Delta + \kappa^2)^2$ with this Robin 
+Boundary condition. Fix $x \in \partial \Omega$ and let $H^x(y) = G^{x}(y) - \Phi^{x}(y)$. Then $H^{x}$ satisfies
+
+\begin{align*}
+  &\Op H^{x} = 0 \text{ in } \Omega, \\
+  &\beta H^{x} + \frac{\partial H^{x}}{\partial n} = g - \beta\Phi^{x}  - \frac{\partial \Phi^{x}}{\partial n}  \text{ in } \partial \Omega, 
+\end{align*}
+
+where $\beta, g$ and $\Phi^{x}$ are functions in $y$. For a fixed $y \in \partial \Omega$, we want $g(y) - \beta (y) \Phi^{x}(y) - \frac{\partial \Phi^{x}(y)}{\partial n} =0 \forall x \in \Omega$
+Of course, we can't satisfy this, so we define
+ $f(\beta, g) =\frac{1}{2} \int_{\Omega} ( \beta \Phi^{x}(y) + \frac{\partial \Phi^{x}(y)}{\partial n} - g)^{2} dx$.
+and minimize.
+\begin{align}
+  \begin{split}
+    \beta^{*}(y), g^{*}(y) :&= \argmin_{g \in \mathbb{R}, \beta > 0} f(\beta,g ) \\
+    %
+    %
+    %
+    &=\frac{1}{2} \int_{\Omega} ( \beta \Phi^{x}(y) + \frac{\partial \Phi^{x}(y)}{\partial n} - g)^{2} dx \\
+    % 
+    % 
+    % 
+    &= \argmin_{g, \beta } \frac{1}{2} \int_{\Omega} ( \beta \Phi(x,y) + \nabla_{y} \Phi(x,y) \cdot n_{y} - g)^{2} dx\\
+    % 
+    % 
+    &= \argmin_{g, \beta } \frac{1}{2} \int_{\Omega} \beta^2 \Phi^2(x,y) + (\nabla_{y} \Phi(x,y) \cdot n_{y})^2 + g^2\\
+    &\ \ \ - 2g\beta\Phi(x,y) + 2\beta \Phi(x,y)\nabla_{y} \Phi(x,y) \cdot n_{y} \\
+    &\ \ \ - 2g\nabla_{y} \Phi(x,y) \cdot n_{y} dx \\
+    % 
+    % 
+    % 
+    &= \argmin_{g, \beta } \frac{1}{2} \int_{\Omega} \beta^2 \Phi^2(x,y) +  g^2dx\\
+    &\ \ \ + \int_{\Omega} \beta \Phi(x,y)\nabla_{y} \Phi(x,y) \cdot n_{y} -g\nabla_{y} \Phi(x,y) \cdot n_{y}\\
+    &\ \ \ -g\beta\Phi(x,y) dx \\
+    % 
+    % 
+    % 
+  \end{split}
+\end{align}
+
+To minimize we differentiate.
+
+\begin{align*}
+  \frac{\partial f}{\partial \beta} &= \int_{\Omega} \beta\Phi^2(x,y) + \Phi(x,y)\nabla_{y} \Phi(x,y) \cdot n_{y} -g\Phi(x,y) dx\\
+  %
+  %
+  %
+  \frac{\partial f}{\partial g} &= \int_{\Omega} g - \nabla_{y} \Phi(x,y) \cdot n_{y} -\beta\Phi(x,y) dx. \\
+\end{align*}
+
+Equating these partial derivatives to zero results in a $2\times 2$ set of equations.
+
+\[
+\begin{bmatrix}
+  \int_{\Omega}\Phi^2(x,y) dx & -\int_{\Omega} \Phi(x,y) dx \\
+  -\int_{\Omega}\Phi(x,y) dx    & \int_{\Omega}dx \\
+\end{bmatrix}
+\begin{bmatrix}
+  \beta^{*}(y) \\
+  g^{*}(y) \\
+\end{bmatrix}
+=
+\begin{bmatrix}
+  -\int_{\Omega} \Phi(x,y) \nabla_{y}\Phi(x,y) \cdot n_{y} dx \\
+  \int_{\Omega} \nabla_{y}\Phi(x,y) \cdot n_{y}dx
+\end{bmatrix}.
+\]
+
+Now, all we need to do is decide on an operator. This will give us the $\Phi$ as a matern covariance and we will also
+be able to differentiate it. 
+
+\subsection{Calculation in $\mathbb{R}^2$}
+
+According to \cite{stuart2010inverse} we must take at least $(-\Delta + \kappa^2)^{\nu + d/2}$ with $\nu > 0$. Here I take 
+$\Op =(-\Delta + \kappa^2 )^2$. In this case, $\nu = 1$ and so using \ref{grad_matern}
+
+\begin{align*}
+  \Phi(x,y) &= \sigma^2 \kappa||x-y|| K_{1}(\kappa ||x-y||) \\
+  \nabla_{y}\Phi(x,y) &= \kappa  \sigma^2 \kappa||x-y|| K_{0}(\kappa ||x-y||) \frac{x-y}{||x-y||}.
+\end{align*}
+
+
+% \section{Optimization Problem}
+% Naturally, one can seek $\beta$ that minimizes the difference between the Green's function and
+% the fundamental solution:
+
+% $$
+% \beta^{*} := \argmin_{\beta > 0} \frac{1}{2} \int_{\Omega}\int_{\Omega} (\Phi(x,y) - G(x,y))^2 dx dy
+% $$
+
+% But this looks hard. We can use what we have.
+% to do this we start from a different spot. Say one has a finite element discretization of the problem. Then one may want to minimize the difference between
+% the operators. This can be done as follows. Consider the finite element basis functions $\{f_y\}_{y \in S }$. In the current context, the easiest
+% way to think of $f_{y}$ is as an approximation to $\delta_y$ (a dirac delta centered at $y\in S$). Note that to have a complete analogy, we must 
+% have $\int_{\Omega}f_y = 1, \forall y \in S$.
+% Now define:
+
+% $$
+% (-\Delta + \kappa^2)u_y = f_y \text{ in } \mathbb{R}^d
+% $$
+
+% and 
+
+% \[
+% \begin{cases}
+%   (-\Delta + \kappa^2)v_y  &= f_y \text{ in } \Omega \\
+%   \beta v_y + \frac{\partial v_y}{\partial n} &= 0 \text{ in } \partial \Omega . 
+% \end{cases}
+% \]
+
+% Ideally, we'd like to have $u_y \equiv v_y, \ \forall y \in S$. We can't so we take
+
+% $$
+% \beta^{*} := \argmin_{\beta > 0} \frac{1}{2} \sum_{y \in S} \int_{\Omega}(u_y(x) - v_y(x) )^2dx.
+% $$ 
+% Now, take finer and finer discretizations. As $S \to \Omega$ (in the sense that $S$ becomes
+% dense in $\Omega$), we get $f_y \to \delta_{y}, \ \sum_{y \in \Omega} \to \int_{\Omega}, \ u_y \to \Phi(\cdot, y)$
+% and $v_y \to G(\cdot, y)$. Consequently,
+% the optimization problem becomes
+
+% $$
+% \beta^{*} = \argmin_{\beta > 0} \frac{1}{2} \int_{\Omega}\int_{\Omega} (\Phi(x,y) - G(x,y) )^2 dx dy,
+% $$
+
+% which recovers the previous, more natural optimization problem.
+
+\bibliographystyle{unsrt}
+\bibliography{refs.bib}
+\end{document}
