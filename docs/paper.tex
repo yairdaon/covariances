@@ -8,6 +8,7 @@
 %\usepackage{algorithm} % algorithm package
 %\usepackage[noend]{algpseudocode}
 \usepackage{graphicx}
+\graphicspath{{../2D/vis/}}
 \usepackage{wrapfig}
 \usepackage{hyperref}
 \usepackage{subcaption}
@@ -299,6 +300,7 @@ recipe derived above.
 \endminipage
  \caption{Green's functions centered at $(0.45,0.65)$ for 
    different precision operators with different boundary conditions.}
+ \label{green}
 \end{figure}
  
 \begin{figure}[!htb]
@@ -314,10 +316,12 @@ recipe derived above.
   \includegraphics[width=\linewidth]{improper_robin_variance.png}
    \caption*{$\Op = -\Delta + \kappa^2$, homogeneous Robin.}
 \endminipage
- \caption{Pointwise variance field for different operators with different boundary conditions.}
+ \caption{Pointwise variance field for different operators with
+   different boundary conditions.}
+ \label{var}
 \end{figure}
   
-Pointwise variance field for the different operators is presented in \ref{var}.
+Pointwise variance field for the different operators is presented in figure \ref{var}.
 $10,000$ iid samples were used to estimate the pointwise variance field. 
 The operator $-\Delta + \kappa^2$ is not a proper precision operator when $d=2$. 
 Informally, it has infinite pointwise variance everywhere. Thus, pointwise
