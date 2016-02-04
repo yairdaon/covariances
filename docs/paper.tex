@@ -1,15 +1,16 @@
-
 \documentclass[paper=a4, fontsize=11pt]{scrartcl} % A4 paper and 11pt font size
 
 \usepackage[T1]{fontenc} % Use 8-bit encoding that has 256 glyphs
 \usepackage[english]{babel} % English language/hyphenation
-\usepackage{amsmath,amsfonts,amsthm} % Math packages
+\usepackage{amsmath, amsfonts, amsthm} % Math packages
 \usepackage{cite}
-\usepackage{graphicx}
-\usepackage{algorithm} % algorithm package
-\usepackage[noend]{algpseudocode}
-\usepackage{hyperref}
 
+%\usepackage{algorithm} % algorithm package
+%\usepackage[noend]{algpseudocode}
+\usepackage{graphicx}
+\usepackage{wrapfig}
+\usepackage{hyperref}
+\usepackage{subcaption}
 \usepackage{sectsty} % Allows customizing section commands
 \allsectionsfont{\centering \normalfont\scshape} % Make all sections centered, the default font and small caps
 
@@ -128,18 +129,18 @@ $$
 
 with $\nu, \kappa > 0$ and
 
-$$
-\sigma^2 = \frac{\Gamma(\nu)}{\Gamma(\nu + d/2) (4\pi)^{d/2} \kappa^{2\nu}}.
-$$
+\begin{align}\label{sig2}
+  \sigma^2 &= \frac{\Gamma(\nu)}{\Gamma(\nu + d/2) (4\pi)^{d/2} \kappa^{2\nu}}.
+\end{align}
 
 The following identity
 
-\begin{align}\label{diff}
+\begin{align*}%\label{diff}
   \frac{\text{d}}{\text{d}x} (x^{\nu} K_{\nu}(x)) &= -x^{\nu}K_{\nu-1}(x), \ \forall \nu \in \mathbb{Z},
-\end{align}
+\end{align*}
 
 facilitates calculation of the gradient whenever $\nu \in \mathbb{Z}$:
-\begin{align}\label{grad_matern}
+\begin{align*}%\label{grad_matern}
   \begin{split}
   \nabla_{x} m( x,y; \kappa, \nu ) &= \nabla_{x} \frac{\sigma^2}{2^{\nu-1}\Gamma(\nu)} (\kappa||x-y||)^{\nu}K_{\nu}(\kappa||x-y||) \\
   %
@@ -151,7 +152,7 @@ facilitates calculation of the gradient whenever $\nu \in \mathbb{Z}$:
   %
   &= -\kappa\frac{\sigma^2}{2^{\nu-1}\Gamma(\nu)} (\kappa||x-y||)^{\nu}K_{\nu-1}(\kappa||x-y||) \frac{x-y}{||x-y||} \\
   \end{split}
-\end{align}
+\end{align*}
 
 This will be used later when we make reference to the fundamental solution of the operator.
 
@@ -272,9 +273,68 @@ Now the 2D problem. Recall that in polar coordinates $dy = r\sin \theta dr d\the
 The above problem is uninformative in 3 dimensions but has a solution in 2 dimensions.
 
 \section{Results}
-In this section we present results found using our method. We use FENiCS \cite{logg2012automated} for
+In this section we present results found using our method. We use FENiCS \cite{fenics} for
 the visualizations presented below. Everything required to make these may be found on 
-\href{https://github.com/yairdaon/covariances}{GitHub}.
+\href{https://github.com/yairdaon/covariances}{GitHub}. We take $\kappa = 11$ 
+in all simulations and for the homogeneous Robin boundary condition we use the
+recipe derived above.
+
+\begin{figure}[!htb]
+\minipage{0.5\textwidth}
+  \includegraphics[width=\linewidth]{homogeneous_neumann_green.png}
+   \caption*{$\Op = (-\Delta + \kappa^2)^2$, homogeneous Neumann.}
+\endminipage\hfill
+\minipage{0.5\textwidth}
+  \includegraphics[width=\linewidth]{homogeneous_robin_green.png}
+   \caption*{$\Op = (-\Delta + \kappa^2)^2$, homogeneous Robin.}
+\endminipage\hfill
+
+\minipage{0.5\textwidth}
+  \includegraphics[width=\linewidth]{improper_robin_green.png}
+   \caption*{$\Op = -\Delta + \kappa^2$, homogeneous Robin.}
+\endminipage\hfill
+\minipage{0.5\textwidth}
+  \includegraphics[width=\linewidth]{fundamental_solution.png}
+   \caption*{$\Op = (-\Delta + \kappa^2)^2$, Fundamental solution.}
+\endminipage
+ \caption{Green's functions centered at $(0.45,0.65)$ for 
+   different precision operators with different boundary conditions.}
+\end{figure}
+ 
+\begin{figure}[!htb]
+\minipage{0.33\textwidth}
+  \includegraphics[width=\linewidth]{homogeneous_neumann_variance.png}
+   \caption*{$\Op = (-\Delta + \kappa^2)^2$, homogeneous Neumann.}
+\endminipage\hfill
+\minipage{0.33\textwidth}
+  \includegraphics[width=\linewidth]{homogeneous_robin_variance.png}
+   \caption*{$\Op = (-\Delta + \kappa^2)^2$, homogeneous Robin.}
+\endminipage\hfill
+\minipage{0.33\textwidth}
+  \includegraphics[width=\linewidth]{improper_robin_variance.png}
+   \caption*{$\Op = -\Delta + \kappa^2$, homogeneous Robin.}
+\endminipage
+ \caption{Pointwise variance field for different operators with different boundary conditions.}
+\end{figure}
+  
+Pointwise variance field for the different operators is presented in \ref{var}.
+$10,000$ iid samples were used to estimate the pointwise variance field. 
+The operator $-\Delta + \kappa^2$ is not a proper precision operator when $d=2$. 
+Informally, it has infinite pointwise variance everywhere. Thus, pointwise
+variance is note presented for it. Ideally, the pointwise
+variance fields would be constant and equal 
+$\sigma^2 = 6.6 \cdot 10^{-4}$, according to \ref{sig2}. This, 
+however, is not the case here and we can measure performance
+by looking at the change of the pointwise variace field.
+
+Figure \ref{green} gives a comparison between various Green's functions
+and the fundamental solution. Ideally, the green's funciton would be as
+isotropic as the fundamental solution. Note that the fundamental solution
+does present some serious drawbacks - there is correlation between parts of
+the domain that are completely separated by the dolphin (which is not
+a part of the domain).
+
+
 
 \bibliographystyle{unsrt}
 \bibliography{refs.bib}
