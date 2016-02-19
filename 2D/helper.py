@@ -24,7 +24,7 @@ def apply_sources( file_name, container, b ):
         PointSource( container.V, Point ( 0.05 , 0.005 ), 1. ).apply( b )
   
 
-def get_var( A, container, k=1000):
+def get_var( A, container, k ):
     
     n     = container.n
     tmp   = Function( container.V )
