@@ -64,6 +64,15 @@ class Container():
         
         return ret
 
+    
+    def generate( self, name ):
+        file = open( "cpp/" + name + ".cpp" , 'r' )  
+        code = file.read()
+        xp = Expression( code, element = self.V.ufl_element() )
+        xp.kappa = self.kappa
+        xp.factor = self.factor
+        xp.nu = self.nu
+        return xp
  
 
 class Robin(Expression):
