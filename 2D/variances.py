@@ -61,14 +61,14 @@ tmp.vector()[:] = -tmp.vector()[:]
 
 plot( tmp,
       title = "Fundamental Solution",
-      #mode ="color",
+      mode ="color",
       #range_min = ran[0],
       #range_max = container.factor
   ).write_png( "../../PriorCov/" + mesh_name + "_fundamental_solution" )
 
 plot( sol,
       title = "Neumann Greens Function",
-      #mode ="color",
+      mode ="color",
       #range_min = ran[0],
       #range_max = ran[1]
   ).write_png( "../../PriorCov/" + mesh_name + "_modified_neumann_green" )
