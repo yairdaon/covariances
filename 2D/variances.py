@@ -22,7 +22,7 @@ else:
 # Global variables. Everybody uses them.
 kappa = 11. # Killing rate
 dim = 2 # dimentia
-k = 2000 # number of iterations for ptwise var estimate
+k = 100000 # number of iterations for ptwise var estimate
 
 
 
@@ -32,6 +32,7 @@ container = parameters.Container( mesh_obj, kappa, dim, nu )
 u      = container.u
 v      = container.v
 tmp    = Function( container.V )
+fund   = Function( container.V )
 f      = Constant( 0.0 )
 
 # Homogeneous Neumann ######################################
@@ -41,7 +42,7 @@ L = f*v*dx
 b = assemble(L)
 
 g = helper.get_g( A, container, k )
-helper.apply_sources( file_name, container, b, g = g )
+helper.apply_sources( file_name, container, b, scaling = g )
 
 sol = Function( container.V )
 solve( A, tmp.vector(), b )
@@ -56,8 +57,8 @@ sol.vector().set_local(
 fundamental = container.generate( "mat12" )
 fundamental.x[0] = 0.45
 fundamental.x[1] = 0.65
-tmp.interpolate( fundamental )
-tmp.vector()[:] = -tmp.vector()[:]
+fund.interpolate( fundamental )
+fund.vector()[:] = -fund.vector()[:]
 
 plot( tmp,
       title = "Fundamental Solution",
