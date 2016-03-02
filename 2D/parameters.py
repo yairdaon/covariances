@@ -5,10 +5,12 @@ from dolfin import *
 import pdb
 import math
 
+import helper
 class Container():
 
-    def __init__( self, mesh_obj, kappa, dim, nu ): 
+    def __init__( self, mesh_name, mesh_obj, kappa, dim, nu ): 
 
+        self.mesh_name = mesh_name
         self.nu = nu
         assert nu % 1 == 0
 
@@ -23,14 +25,23 @@ class Container():
         self.n = self.V.dim()
         self.sqrt_M = sqrtm( assemble( self.u*self.v*dx ).array() )
 
+        self._g = None
+        self._neumann_var = None
+        self.variance_it = 5000#00
+        
         # Some constants
         if nu > 0:
-            self.sig2 = math.gamma( nu ) / math.gamma( nu + dim/2 ) / (4*math.pi)**(dim/2) / kappa**(2*nu) 
+            self.sig2 = math.gamma( nu ) / math.gamma( nu + dim/2.0 ) / (4*math.pi)**(dim/2.0) / kappa**(2.0*nu) 
+            self.sig  = math.sqrt( self.sig2 )
             self.factor = self.sig2 / 2**(nu-1) / math.gamma( nu )
         else:
             self.sig2 = np.Inf
+            self.sig  = np.Inf
             self.factor = 1.0 / 2.0 / math.pi
 
+        self.ran_var = ( 0.0, 1.5 * self.sig2 )
+        self.ran_sol = ( 0.0, 1.5 * self.sig2 )
+        
     def __call__( self, x, y ):
         '''
         For testing purposes only
@@ -73,7 +84,26 @@ class Container():
         xp.factor = self.factor
         xp.nu = self.nu
         return xp
- 
+
+    @property
+    def g(self):
+        if self._g == None:
+            self.set_neumann_var_and_g()
+        return self._g
+
+    @property
+    def neumann_var( self ):
+        if self._neumann_var == None:
+            self.set_neumann_var_and_g()
+        return self._neumann_var
+
+    def set_neumann_var_and_g( self ):
+        a = inner(grad(self.u), grad(self.v))*dx + self.kappa2*self.u*self.v*dx
+        A = assemble(a)
+        self._neumann_var, self._g = helper.get_var_and_g( self, A )
+
+            
+
 
 class Robin(Expression):
 
