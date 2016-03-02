@@ -5,7 +5,7 @@ import helper
 #########################################################
 # Homogeneous Neumann ###################################
 #########################################################
-def neumann( container ):
+def neumann( container, mode ):
 
     u = container.u
     v = container.v
@@ -22,8 +22,16 @@ def neumann( container ):
     sol_neumann = Function( container.V )
     solve( A, tmp.vector(), b )
     solve( A, sol_neumann.vector(), assemble(tmp*v*dx) )
-    helper.save_plots( sol_neumann, "Homogeneous Neumann Greens Function", container.mesh_name, ran = container.ran_sol )    
+    helper.save_plots( sol_neumann,
+                       "Homogeneous Neumann Greens Function",
+                       container.mesh_name,
+                       ran = container.ran_sol,
+                       mode )    
 
     neumann_var = container.neumann_var
-    helper.save_plots( neumann_var, "Homogeneous Neumann Variance"       , container.mesh_name, ran = container.ran_var )
+    helper.save_plots( neumann_var,
+                       "Homogeneous Neumann Variance",
+                       container.mesh_name,
+                       ran = container.ran_var,
+                       mode )
     

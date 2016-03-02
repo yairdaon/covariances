@@ -5,7 +5,7 @@ import numpy as np
 #########################################################
 # Constant Variance / Time Change Method ################
 #########################################################
-def variance( container ):
+def variance( container, mode ):
 
     u = container.u
     v = container.v
@@ -28,8 +28,10 @@ def variance( container ):
     sol_cos_var.vector().set_local(  
         sol_cos_var.vector().array() * g.vector().array() 
     ) 
-    print "Maximum of const var = " + str( np.amax( sol_cos_var.vector().array() ) )
-    print "Maximum of fund sol = " + str( container.sig2 )
     
-    helper.save_plots( sol_cos_var, "Constant Variance Greens Function", container.mesh_name, ran = container.ran_sol  )
+    helper.save_plots( sol_cos_var,
+                       "Constant Variance Greens Function",
+                       container.mesh_name,
+                       ran = container.ran_sol,
+                       mode )
 

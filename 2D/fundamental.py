@@ -5,7 +5,7 @@ import helper
 #########################################################
 # Fundamental solution ##################################
 #########################################################
-def fundamental( container ):
+def fundamental( container, mode ):
     fund   = Function( container.V )
     fund_xpr = container.generate( "mat12" )
     pt = helper.pts[container.mesh_name][0]
@@ -14,6 +14,10 @@ def fundamental( container ):
     fund = Function( container.V )
     fund.interpolate( fund_xpr )
     fund.vector()[:] = -fund.vector()[:]
-    helper.save_plots( fund, "Fundamental Solution", container.mesh_name, ran = container.ran_sol )
+    helper.save_plots( fund, 
+                       "Fundamental Solution", 
+                       container.mesh_name,
+                       ran = container.ran_sol,
+                       mode )
 
 

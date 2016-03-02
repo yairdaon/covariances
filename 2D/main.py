@@ -9,12 +9,12 @@ import fundamental
 import variance
 
 # Choose a mesh
-if False:
+if True:
     mesh_name = "lshape"
     mesh_name = "dolfin_coarse"
     #mesh_name = "dolfin_fine"
     #mesh_name = "pinch" 
-    mesh_obj = Mesh( "meshes/" + mesh_name )
+    mesh_obj = Mesh( "meshes/" + mesh_name + ".xml" )
 else:
     mesh_name = "square"
     mesh_obj = UnitSquareMesh( 30, 30 )
@@ -25,12 +25,15 @@ nu = 1
 
 container = parameters.Container( mesh_name, mesh_obj, kappa, dim, nu )
 
-#neumann.neumann( container )
-variance.variance( container )
-#robin.robin( container )
-#robin.improper( container )
-#fundamental.fundamental( container )
+#plotting mode.
+#mode = color # this is flattend
+mode = "auto" # this is 3D
 
+neumann.neumann( container, mode )
+variance.variance( container, mode )
+robin.robin( container, mode )
+robin.improper( container, mode )
+fundamental.fundamental( container, mode )
 
 interactive()
 

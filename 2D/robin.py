@@ -5,7 +5,7 @@ import parameters
 #########################################################
 # Homogeneous Robin #####################################
 #########################################################
-def robin( container ):
+def robin( container, mode ):
     
     hom_beta   = parameters.Robin( container, param = "hom_beta" )
 
@@ -26,16 +26,25 @@ def robin( container ):
     sol_hom_rob = Function( container.V )
     solve( A, tmp.vector(), b )
     solve( A, sol_hom_rob.vector(), assemble(tmp*v*dx) )
-    hom_rob_var , _ = helper.get_var_and_g( container, A )
     
-    helper.save_plots( hom_rob_var, "Homogeneous Robin Variance"       , container.mesh_name, ran = container.ran_var )
-    helper.save_plots( sol_hom_rob, "Homogeneous Robin Greens Function", container.mesh_name, ran = container.ran_sol )
+    helper.save_plots( hom_rob_var,
+                       "Homogeneous Robin Variance",
+                       container.mesh_name,
+                       ran = container.ran_var,
+                       mode )
+    
+    hom_rob_var , _ = helper.get_var_and_g( container, A )
+    helper.save_plots( sol_hom_rob,
+                       "Homogeneous Robin Greens Function",
+                       container.mesh_name,
+                       ran = container.ran_sol,
+                       mode )
 
 
 #########################################################
 # Improper Homogeneous Robin ############################
 #########################################################
-def improper( container ):
+def improper( container, mode ):
     cot = parameters.Container( container.mesh_name,
                                 container.mesh_obj,
                                 container.kappa,
@@ -60,5 +69,9 @@ def improper( container ):
     sol_imp_rob = Function( cot.V )
     solve( A, tmp.vector(), b )
     solve( A, sol_imp_rob.vector(), assemble(tmp*v*dx) )
-    helper.save_plots( sol_imp_rob, "Improper Robin Greens Function", cot.mesh_name, ran = container.ran_sol )
+    helper.save_plots( sol_imp_rob, 
+                       "Improper Robin Greens Function",
+                       cot.mesh_name,
+                       ran = container.ran_sol,
+                       mode )
     

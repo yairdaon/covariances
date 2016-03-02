@@ -5,7 +5,7 @@ import pdb
 import math
 
 pts ={}
-pts["square"]           = [ np.array( [ 0.1 , 0.5   ] ) ]
+pts["square"]           = [ np.array( [ 0.01  , 0.5   ] ) ]
 pts["dolfin_coarse"]    = [ np.array( [ 0.45  , 0.65  ] ) ] 
 pts["dolfin_fine"]      = [ np.array( [ 0.45  , 0.65  ] ) ] 
 pts["pinch"]            = [ np.array( [ 0.35  , 0.155 ] ) ]
@@ -17,7 +17,7 @@ no_scaling =  lambda x: 1.0
 def apply_sources ( container, b, scaling = no_scaling ):
     sources = pts[container.mesh_name]
     for source in sources:
-        PointSource( container.V, Point ( source ), 1./ scaling(source)  ).apply( b )
+        PointSource( container.V, Point ( source ), scaling(source)  ).apply( b )
 
 
 def get_var_and_g( container, A ):
@@ -43,7 +43,7 @@ def get_var_and_g( container, A ):
 
     return var, g 
  
-def save_plots( data, title, mesh_name, mode = "color", ran = [] ):
+def save_plots( data, title, mesh_name, mode = "auto", ran = [] ):
 
     file_name =  mesh_name + "_" + title.replace( " ", "_" )
     
@@ -51,6 +51,8 @@ def save_plots( data, title, mesh_name, mode = "color", ran = [] ):
         plot( data, 
               title = title,
               mode = mode,
+              interactive = False,
+              scalarbar = False,
           ).write_png( "../../PriorCov/" + file_name )
 
     elif len(ran) == 2:
@@ -59,9 +61,13 @@ def save_plots( data, title, mesh_name, mode = "color", ran = [] ):
               mode = mode,
               range_min = ran[0],
               range_max = ran[1],
+              interactive = False,
+              scalarbar = False,
           ).write_png( "../../PriorCov/" + file_name )
        
     else:
         raise NameError( "Range is not empty, neither it has two entries" )
    
     File( "data/" + file_name + ".pvd") << data
+
+    print "Maximum of " + title + " = " + str( np.amax( data.vector().array() ) )
