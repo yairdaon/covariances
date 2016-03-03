@@ -3,7 +3,7 @@ import numpy as np
 import helper
 
 #########################################################
-# Homogeneous Neumann ###################################
+# Neumann ###############################################
 #########################################################
 def neumann( container, mode ):
 
@@ -23,15 +23,15 @@ def neumann( container, mode ):
     solve( A, tmp.vector(), b )
     solve( A, sol_neumann.vector(), assemble(tmp*v*dx) )
     helper.save_plots( sol_neumann,
-                       "Homogeneous Neumann Greens Function",
+                       "Neumann Greens Function",
                        container.mesh_name,
                        ran = container.ran_sol,
-                       mode )    
+                       mode = mode )    
 
     neumann_var = container.neumann_var
     helper.save_plots( neumann_var,
-                       "Homogeneous Neumann Variance",
+                       "Neumann Variance",
                        container.mesh_name,
                        ran = container.ran_var,
-                       mode )
+                       mode = mode )
     

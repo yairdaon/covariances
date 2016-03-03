@@ -26,20 +26,19 @@ def robin( container, mode ):
     sol_hom_rob = Function( container.V )
     solve( A, tmp.vector(), b )
     solve( A, sol_hom_rob.vector(), assemble(tmp*v*dx) )
-    
-    helper.save_plots( hom_rob_var,
-                       "Homogeneous Robin Variance",
-                       container.mesh_name,
-                       ran = container.ran_var,
-                       mode )
-    
-    hom_rob_var , _ = helper.get_var_and_g( container, A )
     helper.save_plots( sol_hom_rob,
-                       "Homogeneous Robin Greens Function",
+                       "Robin Greens Function",
                        container.mesh_name,
                        ran = container.ran_sol,
-                       mode )
+                       mode = mode )
 
+    hom_rob_var , _ = helper.get_var_and_g( container, A )
+    helper.save_plots( hom_rob_var,
+                       "Robin Variance",
+                       container.mesh_name,
+                       ran = container.ran_var,
+                       mode = mode )
+    
 
 #########################################################
 # Improper Homogeneous Robin ############################
@@ -49,7 +48,8 @@ def improper( container, mode ):
                                 container.mesh_obj,
                                 container.kappa,
                                 container.dim, 
-                                0 )# the only difference
+                                0, # the only difference
+                                container.num_samples )
  
     normal = cot.normal 
     u      = cot.u
@@ -58,7 +58,7 @@ def improper( container, mode ):
     kappa  = cot.kappa
     f      = Constant( 0.0 )
 
-    imp_beta   = parameters.Robin( cot, param = "hom_beta" )
+    imp_beta   = parameters.Robin( cot, param = "imp_beta" )
 
     a = inner(grad(u), grad(v))*dx + kappa*kappa*u*v*dx + inner( imp_beta, normal )*u*v*ds
     A = assemble(a)
@@ -73,5 +73,12 @@ def improper( container, mode ):
                        "Improper Robin Greens Function",
                        cot.mesh_name,
                        ran = container.ran_sol,
-                       mode )
+                       mode = mode )
+
+    imp_rob_var , _ = helper.get_var_and_g( container, A )
+    helper.save_plots( imp_rob_var,
+                       "Improper Robin Variance",
+                       container.mesh_name,
+                       ran = container.ran_var,
+                       mode = mode )
     

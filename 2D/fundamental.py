@@ -18,6 +18,7 @@ def fundamental( container, mode ):
                        "Fundamental Solution", 
                        container.mesh_name,
                        ran = container.ran_sol,
-                       mode )
+                       mode = mode,
+                       scalarbar = True )
 
 

@@ -33,5 +33,5 @@ def variance( container, mode ):
                        "Constant Variance Greens Function",
                        container.mesh_name,
                        ran = container.ran_sol,
-                       mode )
+                       mode = mode )
 
