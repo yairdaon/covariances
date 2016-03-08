@@ -100,6 +100,7 @@ def save_plots( data,
 
     #print "Maximum of " + title + " = " + str( np.amax( data.vector().array() ) )
 
+<<<<<<< HEAD
 
 def save_plots( data, title, mesh_name, mode = "color", ran = [] ):
 
@@ -209,3 +210,8 @@ def plot_variable(u, name, direc, cmap='gist_yarg', scale='lin', numLvls=12,
     if show:
         plt.show()
     plt.close(fig)
+
+def update_x_xp( x, xp ):
+    xp.x[0] = x[0]
+    xp.x[1] = x[1]
+

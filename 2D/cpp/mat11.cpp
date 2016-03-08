@@ -16,13 +16,13 @@ namespace dolfin {
 	which is know to be better than hard thresholding 
       */
       double ra  = sqrt(  (x[0]-y[0])*(x[0]-y[0])  +  (x[1]-y[1])*(x[1]-y[1])  ) + 1E-13;
-      double phi = factor * pow( kappa*ra, (double)nu ) * cyl_bessel_k( nu, kappa*ra );
+      double phi = factor * pow( kappa*ra, nu ) * cyl_bessel_k( nu, kappa*ra );
       values[0] = phi * phi;
     }
   public:
     const Array<double> x;
     double kappa;
-    int nu;
+    double nu;
     double factor;
   };
 }
