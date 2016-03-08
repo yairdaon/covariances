@@ -25,8 +25,10 @@ class Container():
         self.n = self.V.dim()
         self.sqrt_M = sqrtm( assemble( self.u*self.v*dx ).array() )
 
-        self._g = None
+        self._neumann_g = None
         self._neumann_var = None
+        self._robin_g = None
+        self._robin_var = None
         self.num_samples = num_samples
         
         # Some constants
@@ -50,32 +52,32 @@ class Container():
         return self.factor * (self.kappa*ra)**self.nu * sp.kn(self.nu, self.kappa*ra ) 
         
 
-    def mat( self, x, y ):
+    def mat11( self, x, y ):
         '''
         For testing purposes only
         '''
        
-        ret = np.empty( (2,2) )
-        ret[0,0] = self(x,y)**2
-        ret[0,1] = ret[1,0] = -self(x,y)
-        ret[1,1] = 1.0
+        return self(x,y)**2
         
-        return ret
-
-    def rhs( self, x, y ):
+    def rhs11( self, x, y ):
         '''
         For testing purposes only
         '''
        
-        ret  = np.empty( (2,2) )
         ra   = np.linalg.norm(x-y)
         grad = -self.kappa * self.factor * (self.kappa*ra)**(self.nu) * sp.kn( self.nu-1, self.kappa*ra ) * (x-y) / ra 
-        ret[0,:] = -self(x,y) * grad
-        ret[1,:] = grad
+        return (-self(x,y) * grad)[0] 
         
-        return ret
+    def rhs12( self, x, y ):
+        '''
+        For testing purposes only
+        '''
+       
+        ra   = np.linalg.norm(x-y)
+        grad = -self.kappa * self.factor * (self.kappa*ra)**(self.nu) * sp.kn( self.nu-1, self.kappa*ra ) * (x-y) / ra 
+        return (-self(x,y) * grad)[1] 
+        
 
-    
     def generate( self, name ):
         file = open( "cpp/" + name + ".cpp" , 'r' )  
         code = file.read()
@@ -86,8 +88,8 @@ class Container():
         return xp
 
     @property
-    def g(self):
-        if self._g == None:
+    def neumann_g(self):
+        if self._neumann_g == None:
             self.set_neumann_var_and_g()
         return self._g
 
@@ -102,6 +104,23 @@ class Container():
         A = assemble(a)
         self._neumann_var, self._g = helper.get_var_and_g( self, A )
 
+    @property
+    def robin_g(self):
+        if self._robin_g == None:
+            self.set_robin_var_and_g()
+        return self._g
+
+    @property
+    def robin_var( self ):
+        if self._robin_var == None:
+            self.set_robin_var_and_g()
+        return self._robin_var
+
+    def set_robin_var_and_g( self ):
+        a = inner(grad(self.u), grad(self.v))*dx + self.kappa2*self.u*self.v*dx + self.kappa*self.u*self.v*ds
+        A = assemble(a)
+        self._robin_var, self._g = helper.get_var_and_g( self, A )
+
             
 
 
@@ -112,14 +131,10 @@ class Robin(Expression):
         self.container = container
         
         self.mat11 =  self.container.generate( "mat11" )
-        # self.mat12 =  self.generate( "mat12" )
-        # self.mat22 =  self.generate( "mat22" )
-                
+                    
         self.rhs11 =  self.container.generate( "rhs11" )
         self.rhs12 =  self.container.generate( "rhs12" )
-        # self.rhs21 =  self.generate( "rhs21" )
-        # self.rhs22 =  self.generate( "rhs22" )
-
+    
         self.param = param
 
         self.dic = {}
@@ -149,61 +164,18 @@ class Robin(Expression):
                 value[1] = rhs12/mat11
             elif self.param == "hom_beta":
                 raise ValueError( "Homogeneous Robin for the squared operator not implemented yet.")
-            # else:
-
-            #     # These expressions are only required if we use an inhomogeneous
-            #     # Robin boundary condition.
-            #     fe_rhs21 = interpolate( self.rhs21, self.container.V )
-            #     rhs21 = assemble( fe_rhs21 * dx )        
-        
-            #     fe_rhs22 = interpolate( self.rhs22, self.container.V )
-            #     rhs22 = assemble( fe_rhs22 * dx )
-        
-            #     fe_mat22 = interpolate( self.mat22, self.container.V )
-            #     mat22 = assemble( fe_mat22 * dx )
-        
-            #     fe_mat12 = interpolate( self.mat12, self.container.V )
-            #     mat12 = assemble( fe_mat12 * dx )
-
-
-            #     det = mat11*mat22 - mat12*mat12
-            
-            #     if self.param == "inhom_beta":
-            #         value[0] = ( mat22*rhs11 - mat12*rhs21 ) / det
-            #         value[1] = ( mat22*rhs12 - mat12*rhs22 ) / det
-        
-            #     elif self.param == "g":
-            #         value[0] = ( mat11*rhs21 - mat12*rhs11 ) / det  
-            #         value[1] = ( mat11*rhs22 - mat12*rhs12 ) / det
-            
+                    
             self.dic[ (x[0],x[1] )] = ( value[0], value[1] )
        
     def update( self, x ):
 
         self.x = x
         
-        self.update_x_xp( x, self.mat11 )
-        # self.update_x_xp( x, self.mat12 )
-        # self.update_x_xp( x, self.mat22 )
-      
-        self.update_x_xp( x, self.rhs11 )
-        self.update_x_xp( x, self.rhs12 )
-        # self.update_x_xp( x, self.rhs21 )
-        # self.update_x_xp( x, self.rhs22 )
-       
-
-    # def generate( self, name ):
-    #     file = open( "cpp/" + name + ".cpp" , 'r' )  
-    #     code = file.read()
-    #     xp = Expression( code, element = self.container.V.ufl_element() )
-    #     xp.kappa = self.container.kappa
-    #     xp.factor = self.container.factor
-    #     xp.nu = self.container.nu
-    #     return xp
-        
-    def update_x_xp( self, x, xp ):
-        xp.x[0] = x[0]
-        xp.x[1] = x[1]
-
+        helper.update_x_xp( x, self.mat11 )
+              
+        helper.update_x_xp( x, self.rhs11 )
+        helper.update_x_xp( x, self.rhs12 )
+                
+   
     def value_shape(self):
         return (2,)

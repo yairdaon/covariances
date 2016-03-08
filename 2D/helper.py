@@ -98,3 +98,7 @@ def save_plots( data,
         plot( data, title = title )
 
     #print "Maximum of " + title + " = " + str( np.amax( data.vector().array() ) )
+
+def update_x_xp( x, xp ):
+    xp.x[0] = x[0]
+    xp.x[1] = x[1]
