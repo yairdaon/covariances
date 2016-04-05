@@ -3,11 +3,16 @@ import numpy as np
 import helper
 
 #########################################################
-# Neumann ###############################################
+# Dirichlet #############################################
 #########################################################
-def neumann( container, mode, get_var ):
+def dirichlet( container, mode, get_var ):
 
-    
+    def boundary(x, on_boundary):
+        return on_boundary
+        
+    bc = DirichletBC(container.V,  Constant(0.0), boundary)
+
+
     u = container.u
     v = container.v
     kappa = container.kappa
@@ -16,25 +21,25 @@ def neumann( container, mode, get_var ):
 
     
     a = inner(grad(u), grad(v))*dx + kappa*kappa*u*v*dx
-    A = assemble(a)
     L = f*v*dx
-    b = assemble(L)
-    helper.apply_sources( container, b )
         
+    A, b = assemble_system ( a, L, bc )
     
-    sol_neumann = Function( container.V )
+    helper.apply_sources( container, b )
+
+    sol_dirichlet = Function( container.V )
     solve( A, tmp.vector(), b )
-    solve( A, sol_neumann.vector(), assemble(tmp*v*dx) )
-    helper.save_plots( sol_neumann,
-                       "Neumann Greens Function",
+    solve( A, sol_dirichlet.vector(), assemble(tmp*v*dx) )
+    helper.save_plots( sol_dirichlet,
+                       "Dirichlet Greens Function",
                        container.mesh_name,
                        ran = container.ran_sol,
                        mode = mode )    
     
     if get_var: 
-        neumann_var = container.neumann_var
-        helper.save_plots( neumann_var,
-                           "Neumann Variance",
+        dirichlet_var = container.dirichlet_var
+        helper.save_plots( dirichlet_var,
+                           "Dirichlet Variance",
                            container.mesh_name,
                            ran = container.ran_var,
                            mode = mode )

@@ -3,7 +3,7 @@ import helper
 import numpy as np
 
 #########################################################
-# Constant Variance / Time Change Method ################
+# Neumann Constant Variance / Time Change Method ########
 #########################################################
 def neumann_variance( container, mode ):
 
@@ -38,7 +38,7 @@ def neumann_variance( container, mode ):
 
 
 #########################################################
-# Constant Variance / Time Change Method ################
+# Robin Constant Variance / Time Change Method ##########
 #########################################################
 def robin_variance( container, mode ):
 
@@ -65,7 +65,7 @@ def robin_variance( container, mode ):
     ) 
     
     helper.save_plots( sol_cos_var,
-                       "Robin Variance Greens Function",
+                       "Robin Const-Var Greens Function",
                        container.mesh_name,
                        ran = container.ran_sol,
                        mode = mode )

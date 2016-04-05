@@ -4,10 +4,10 @@ using boost::math::cyl_bessel_k;
 
 namespace dolfin {
   
-  class RHS : public Expression
+  class Enumerator : public Expression
   {
   public:
-    RHS() : Expression(), x(2), nu(0), kappa(0), factor(0) { }
+    Enumerator() : Expression(2), x(2), nu(0), kappa(0), factor(0) { }
     
     void eval(Array<double>& values, const Array<double>& y) const
     {
@@ -15,10 +15,10 @@ namespace dolfin {
 	I add 1E-13 to avoid ra = 0. This addition enforces *soft* thresholding
 	which is sometimes better than hard thresholding 
       */
-      double ra    = sqrt(  (x[0]-y[0])*(x[0]-y[0])  +  (x[1]-y[1])*(x[1]-y[1])  ) + 1E-13;
-            
-      double phi = factor * pow(kappa*ra, nu ) * cyl_bessel_k( nu, kappa*ra );
-      values[0]  = phi * kappa * factor * pow( kappa*ra, nu ) * cyl_bessel_k( nu-1, kappa*ra ) * (x[1] - y[1]) / ra;
+      double ra  = sqrt(  (x[0]-y[0])*(x[0]-y[0])  +  (x[1]-y[1])*(x[1]-y[1])  ) + 1E-13;
+      double tmp = factor * pow( kappa*ra, nu ) * cyl_bessel_k( nu-1, kappa*ra ) / ra;
+      values[0]  = tmp * (x[0] - y[0]);
+      values[1]  = tmp * (x[1] - y[1]);
     }
   public:
     const Array<double> x;

@@ -9,23 +9,37 @@ import neumann
 import robin
 import fundamental
 import variance
+import integrated
+import dirichlet
 
-mesh_name = sys.argv[1]
+if len( sys.argv ) > 1:
+    mesh_name = sys.argv[1]
+else:
+    mesh_name = "square"
+get_var = True
+get_var = False                
+kappa = 11. # Killing rate
+num_samples = 0
+nx = 500
+ny = 500
+nz = 10
 
 if mesh_name == "square":
-    mesh_obj = UnitSquareMesh( 100, 40 )
+    mesh_obj = UnitSquareMesh( nx, ny )
+    dim = 2
+elif mesh_name == "parallelogram":
+    mesh_obj = helper.make_2D_parallelogram( nx, ny, 1.3 )
     dim = 2
 elif mesh_name == "cube":
-    mesh_obj = UnitCubeMesh( 100, 40, 40 )
+    mesh_obj = UnitCubeMesh( nx, ny, nz )
     dim = 3
 else:
     mesh_obj = Mesh( "meshes/" + mesh_name + ".xml" )
     dim = 2
 
-kappa = 11. # Killing rate
-nu = 2 - dim / 2.0
-num_samples = 50000
-
+if False:
+    plot( mesh_obj )
+    interactive()
 if dim == 2:
     mode = "color"
 else:
@@ -34,16 +48,35 @@ else:
 container = parameters.Container( mesh_name,
                                   mesh_obj,
                                   kappa,
-                                  dim,
-                                  nu,
+                                  2, # power = 2 in my simulations
                                   num_samples )
-variance.neumann_variance( container, mode )
-variance.robin_variance( container, mode )
-fundamental.fundamental( container, mode )
-neumann.neumann( container, mode )
-if dim == 2:
-    robin.improper( container, mode )
-#robin.robin( container, mode )
+
+
+
+if get_var:
+    print "neumann variance"
+    variance.neumann_variance( container, mode )
+    
+    print "robin variance"
+    variance.robin_variance( container, mode )
+
+print "neumann"
+neumann.neumann            ( container, mode, get_var )
+
+print "fundamental"
+fundamental.fundamental    ( container, mode          )
+
+print "mixed"
+robin.mixed                ( container, mode, get_var )
+
+print "improper"
+robin.improper             ( container, mode, get_var )
+
+print "naive"
+robin.naive                ( container, mode, get_var )
+
+print "dirichlet"
+dirichlet.dirichlet        ( container, mode, get_var )
 
 if mesh_name == "square" or "cube":
     plt.legend()

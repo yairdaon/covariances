@@ -12,7 +12,6 @@ def fundamental( container, mode ):
     helper.update_x_xp( pt, fund_xpr )
     fund = Function( container.V )
     fund.interpolate( fund_xpr )
-    fund.vector()[:] = fund.vector()[:]
     helper.save_plots( fund, 
                        "Fundamental Solution", 
                        container.mesh_name,
