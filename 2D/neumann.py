@@ -37,7 +37,7 @@ def neumann( container, mode ):
     else:
         neumann_var = container.neumann_var
         helper.save_plots( neumann_var,
-                           "Neumann Constant Variance",
+                           "Neumann Variance",
                            container.mesh_name,
                            ran = container.ran_var,
                            mode = mode )

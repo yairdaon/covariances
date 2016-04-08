@@ -12,7 +12,7 @@ import dirichlet
 print
 print "Green's functions and varainces"              
 
-mesh_name = "dolfin_coarse"
+mesh_name = "dolfin_fine"
 mesh_obj = Mesh( "meshes/" + mesh_name + ".xml" )
 kappa = 11. # Killing rate
 num_samples = 0

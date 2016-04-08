@@ -14,7 +14,7 @@ print
 print "Mesh refinements"
 
 kappa = 11. # Killing rate
-num_samples = 2
+num_samples = 0
 
 mesh_obj = Mesh( "meshes/dolfin_fine.xml" )
   
