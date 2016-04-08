@@ -5,9 +5,9 @@ import parameters
 #########################################################
 # Mixed Robin ###########################################
 #########################################################
-def mixed( container, mode, get_var ):
+def mixed( container, mode ):
     
-    beta = parameters.Robin( container, "hom_enum", "hom_denom" )
+    beta = parameters.Robin( container, "mix_enum", "mix_denom" )
 
     u = container.u
     v = container.v
@@ -23,18 +23,20 @@ def mixed( container, mode, get_var ):
     b = assemble(L)
     helper.apply_sources( container, b )
 
-    sol_hom_rob = Function( container.V )
+    sol_mix_rob = Function( container.V )
     solve( A, tmp.vector(), b )
-    solve( A, sol_hom_rob.vector(), assemble(tmp*v*dx) )
-    helper.save_plots( sol_hom_rob,
+    solve( A, sol_mix_rob.vector(), assemble(tmp*v*dx) )
+    helper.save_plots( sol_mix_rob,
                        "Mixed Robin Greens Function",
                        container.mesh_name,
                        ran = container.ran_sol,
                        mode = mode )
-
-    if get_var:
-        hom_rob_var , _ = helper.get_var_and_g( container, A )
-        helper.save_plots( hom_rob_var,
+    
+    if "square" in container.mesh_name or "parallelogram" in container.mesh_name:
+         pass
+    else:
+        mix_rob_var , _ = helper.get_var_and_g( container, A )
+        helper.save_plots( mix_rob_var,
                            "Mixed Robin Variance",
                            container.mesh_name,
                            ran = container.ran_var,
@@ -44,7 +46,7 @@ def mixed( container, mode, get_var ):
 #########################################################
 # Improper Homogeneous Robin ############################
 #########################################################
-def improper( container, mode, get_var ):
+def improper( container, mode ):
    
     container.power = 1
     container.set_constants()
@@ -73,7 +75,10 @@ def improper( container, mode, get_var ):
                        ran = container.ran_sol,
                        mode = mode )
 
-    if get_var:
+    
+    if "square" in container.mesh_name or "parallelogram" in container.mesh_name:
+         pass
+    else:
         imp_rob_var , _ = helper.get_var_and_g( container, A )
         helper.save_plots( imp_rob_var,
                            "Improper Robin Variance",
@@ -87,7 +92,7 @@ def improper( container, mode, get_var ):
 #########################################################
 # Naive Robin ###########################################
 #########################################################
-def naive( container, mode, get_var):
+def naive( container, mode ):
      
     normal = container.normal 
     u      = container.u
@@ -111,7 +116,9 @@ def naive( container, mode, get_var):
                        ran = container.ran_sol,
                        mode = mode )
 
-    if get_var:
+    if "square" in container.mesh_name or "parallelogram" in container.mesh_name:
+         pass
+    else:
         naive_rob_var , _ = helper.get_var_and_g( container, A )
         helper.save_plots( naive_rob_var,
                            "Naive Robin Variance",
@@ -119,47 +126,3 @@ def naive( container, mode, get_var):
                            ran = container.ran_var,
                            mode = mode )
     
-
-
-#########################################################
-# Integrated Robin ######################################
-#########################################################
-def integrated_robin( container, mode, get_var ):
-    
-    container.power = 1
-    container.set_constants()
-
-    normal = container.normal 
-    u      = container.u
-    v      = container.v
-    tmp    = Function( container.V )
-    kappa  = container.kappa
-    f      = Constant( 0.0 )
-
-    int_beta   = parameters.Robin( container, "int_enum", "int_denom" )
-
-    a = inner(grad(u), grad(v))*dx + kappa*kappa*u*v*dx + inner( int_beta, normal )*u*v*ds
-    A = assemble(a)
-    L = f*v*dx
-    b = assemble(L)
-    helper.apply_sources( container, b )
-
-    sol_int_rob = Function( container.V )
-    solve( A, tmp.vector(), b )
-    solve( A, sol_int_rob.vector(), assemble(tmp*v*dx) )
-    helper.save_plots( sol_int_rob, 
-                       "Integrated Robin Greens Function",
-                       container.mesh_name,
-                       ran = container.ran_sol,
-                       mode = mode )
-    if get_var:
-        int_rob_var , _ = helper.get_var_and_g( container, A )
-        helper.save_plots( int_rob_var,
-                           "Integrated Robin Variance",
-                           container.mesh_name,
-                           ran = container.ran_var,
-                           mode = mode )
-
-    container.power = 2
-    container.set_constants()
-     

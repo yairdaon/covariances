@@ -30,7 +30,7 @@ def neumann_variance( container, mode ):
     ) 
     
     helper.save_plots( sol_cos_var,
-                       "Neumann Variance Greens Function",
+                       "Constant Variance Greens Function",
                        container.mesh_name,
                        ran = container.ran_sol,
                        mode = mode )
@@ -65,7 +65,7 @@ def robin_variance( container, mode ):
     ) 
     
     helper.save_plots( sol_cos_var,
-                       "Robin Const-Var Greens Function",
+                       "Naive Robin Constant Variance Greens Function",
                        container.mesh_name,
                        ran = container.ran_sol,
                        mode = mode )

@@ -5,7 +5,7 @@ import helper
 #########################################################
 # Dirichlet #############################################
 #########################################################
-def dirichlet( container, mode, get_var ):
+def dirichlet( container, mode ):
 
     def boundary(x, on_boundary):
         return on_boundary
@@ -35,8 +35,10 @@ def dirichlet( container, mode, get_var ):
                        container.mesh_name,
                        ran = container.ran_sol,
                        mode = mode )    
-    
-    if get_var: 
+   
+    if "square" in container.mesh_name or "parallelogram" in container.mesh_name:
+         pass
+    else:
         dirichlet_var = container.dirichlet_var
         helper.save_plots( dirichlet_var,
                            "Dirichlet Variance",

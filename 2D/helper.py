@@ -10,6 +10,9 @@ pts ={}
 pts["square"]           = [ np.array( [ 0.05  , 0.5   ] ) ]
 pts["parallelogram"]    = [ np.array( [ 0.025 , 0.025 ] ) ]
 pts["dolfin_coarse"]    = [ np.array( [ 0.45  , 0.65  ] ) ] 
+pts["dolfin_fine_0"]    = [ np.array( [ 0.45  , 0.65  ] ) ] 
+pts["dolfin_fine_1"]    = [ np.array( [ 0.45  , 0.65  ] ) ] 
+pts["dolfin_fine_2"]    = [ np.array( [ 0.45  , 0.65  ] ) ] 
 pts["dolfin_fine"]      = [ np.array( [ 0.45  , 0.65  ] ) ] 
 pts["pinch"]            = [ np.array( [ 0.35  , 0.155 ] ) ]
 pts["l_shape"]          = [ np.array( [ 0.45  , 0.65  ] ),
@@ -17,7 +20,7 @@ pts["l_shape"]          = [ np.array( [ 0.45  , 0.65  ] ),
                             np.array( [ 0.05  , 0.005 ] ) ]
 
 color_counter = 0
-colors = [ 'g' , 'b' , 'r', 'k', 'c' , 'm', 'y' ]
+colors = [ 'g' , 'b' , 'r', 'k', 'c' , 'm', 'y',  'g' , 'b' , 'r', 'k', 'c' , 'm', 'y' ]
 
 
 no_scaling =  lambda x: 1.0
@@ -55,7 +58,7 @@ def get_var_and_g( container, A ):
         # Divid by number of samples to get average sum of squares.
         var.vector().set_local( var.vector().array() / container.num_samples )
     
-    elif container.num_samples == 0:
+    else:
         
         V = container.V
         mesh_obj = container.mesh_obj
@@ -90,8 +93,6 @@ def get_var_and_g( container, A ):
                     
         var.vector()[:] = vertex_values[dof_to_vertex_map(V)]
 
-    else:
-        raise ValueError( 'num_samples has to be non-negative' )
         
     g.vector().set_local( 
         np.sqrt( container.sig2 / var.vector().array() )
@@ -103,74 +104,97 @@ def save_plots( data,
                 title,
                 mesh_name,
                 mode = "color",
-                ran = [],
+                ran = [None, None],
                 scalarbar = False ):
     
     global color_counter
-    x_range = np.arange( 0.0, 0.4, 0.005 )
     y = [] 
-
+    x = []
 
     if "square" in mesh_name:
         if "Greens Function" in title or "Fundamental" in title:
-        
+            
+            x_range = np.arange( 0.0, 0.5, 0.005 )
             source = pts["square"][0]
             slope = 0.0
             intercept = source[1] - slope * source[0]
             line = lambda x: (x, slope * x + intercept )
-            
-            
+                        
             for pt in x_range:
-                y.append( data( line(pt) ) ) 
-        
-            plt.plot( x_range, y, colors[color_counter], label = title )
+                try:
+                    y.append( data( line(pt) ) ) 
+                    x.append( pt )
+                except:
+                    pass # so the poin't isnt in the domain. So what? Just skip!
+                
+            if color_counter > 6:
+                line_type = '-.'
+            else:
+                line_type = '-'
+
+            plt.plot( x, y, line_type, color=colors[color_counter], label = title )
             color_counter = color_counter + 1
         
             
     elif "parallelogram" in mesh_name:
-        if "Greens Function" in title or "Fundamental" in title:
+        #if "Greens Function" in title or "Fundamental" in title:
         
-            source = pts["parallelogram"][0]
-            slope = .8
-            intercept = source[1] - slope * source[0]
-            line = lambda x: (x, slope * x + intercept )
-
-            for pt in x_range:
+        x_range = np.arange( 0.0, 0.5, 0.005 )
+        source = pts["parallelogram"][0]
+        slope = .9
+        intercept = source[1] - slope * source[0]
+        line = lambda x: (x, slope * x + intercept )
+               
+        for pt in x_range:
+            try:
                 y.append( data( line(pt) ) ) 
+                x.append( pt )
+            except:
+                pass # The poin't isnt in the domain. So what? Just skip!
+                
         
-        plt.plot( x_range, y, colors[color_counter], label = title )
+        if color_counter > 6:
+            line_type = '-.'
+        else:
+            line_type = '-'
+       
+        plt.plot( x, y, line_type, color=colors[color_counter], label = title )
         color_counter = color_counter + 1
         
             
     elif "dolfin" in mesh_name:
         
         file_name =  mesh_name + "_" + title.replace( " ", "_" )
+        
+        if "Fundamental" in title:
+            plotter = plot( data, 
+                            title = title,
+                            mode = mode,
+                            range_min = ran[0],
+                            range_max = ran[1],
+                            interactive = False,
+                            scalarbar = True,
+                            window_height = 500,
+                            window_width = 600
+                            )
 
-        if ran == []:
-            plot( data, 
-                  title = title,
-                  mode = mode,
-                  interactive = False,
-                  scalarbar = scalarbar,
-              ).write_png( "../../PriorCov/" + file_name )
-
-        elif len(ran) == 2:
-            plot( data, 
-                  title = title,
-                  mode = mode,
-                  range_min = ran[0],
-                  range_max = ran[1],
-                  interactive = False,
-                  scalarbar = scalarbar,
-              ).write_png( "../../PriorCov/" + file_name )
-       
         else:
-            raise NameError( "Range is not empty, neither it has two entries" )
-            
+            plotter = plot( data, 
+                            title = title,
+                            mode = mode,
+                            range_min = ran[0],
+                            range_max = ran[1],
+                            interactive = False,
+                            scalarbar = scalarbar,
+                            window_height = 500,
+                            window_width = 500
+                            )
+        plotter.zoom( 1.4 )
+        plotter.write_png( "../../PriorCov/" + file_name )
+                    
     else:
         plot( data, title = title )
 
-    #print "Maximum of " + title + " = " + str( np.amax( data.vector().array() ) )
        
 def update_x_xp( x, xp ):
     xp.x[0] = x[0]

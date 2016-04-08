@@ -1,4 +1,4 @@
 run::
-	./main.py square
-	./main.py dolfin_coarse
-	./main.py dolfin_fine
+	./parallelogram.py
+	./greens_vars.py
+	./refine.py 3

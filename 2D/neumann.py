@@ -5,7 +5,7 @@ import helper
 #########################################################
 # Neumann ###############################################
 #########################################################
-def neumann( container, mode, get_var ):
+def neumann( container, mode ):
 
     
     u = container.u
@@ -30,11 +30,14 @@ def neumann( container, mode, get_var ):
                        container.mesh_name,
                        ran = container.ran_sol,
                        mode = mode )    
-    
-    if get_var: 
+
+
+    if "square" in container.mesh_name or "parallelogram" in container.mesh_name:
+         pass
+    else:
         neumann_var = container.neumann_var
         helper.save_plots( neumann_var,
-                           "Neumann Variance",
+                           "Neumann Constant Variance",
                            container.mesh_name,
                            ran = container.ran_var,
                            mode = mode )

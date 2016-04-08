@@ -31,12 +31,14 @@ class Container():
         self._neumann_var = None
         self._robin_g = None
         self._robin_var = None
+        self._dirichlet_g = None
+        self._dirichlet_var = None
         self.num_samples = num_samples
               
         self.set_constants()
          
-        self.ran_var = ( 0.0, 1.5 * self.sig2 )
-        self.ran_sol = ( 0.0, 1.5 * self.sig2 )
+        self.ran_var = ( 0.0, 4 * self.sig2 )
+        self.ran_sol = ( 0.0, 2 * self.sig2 )
 
     def generate( self, name ):
         file = open( "cpp/" + name + ".cpp" , 'r' )  
@@ -112,40 +114,32 @@ class Container():
         A = assemble(a)
         self._robin_var, self._g = helper.get_var_and_g( self, A )
 
-        
-    # def __call__( self, x, y ):
-    #     '''
-    #     For testing purposes only
-    #     '''
-    #     ra = np.linalg.norm(x-y) + 1e-13 
-    #     return self.factor * (self.kappa*ra)**self.nu * sp.kn(self.nu, self.kappa*ra ) 
-        
 
-    # def mat11( self, x, y ):
-    #     '''
-    #     For testing purposes only
-    #     '''
-       
-    #     return self(x,y)**2
+    @property
+    def dirichlet_g(self):
+        if self._dirichlet_g == None:
+            self.set_dirichlet_var_and_g()
+        return self._g
+
+    @property
+    def dirichlet_var( self ):
+        if self._dirichlet_var == None:
+            self.set_dirichlet_var_and_g()
+        return self._dirichlet_var
+
+    def set_dirichlet_var_and_g( self ):
+    
+        def boundary(x, on_boundary):
+            return on_boundary
         
-    # def rhs11( self, x, y ):
-    #     '''
-    #     For testing purposes only
-    #     '''
-       
-    #     ra   = np.linalg.norm(x-y)
-    #     grad = -self.kappa * self.factor * (self.kappa*ra)**(self.nu) * sp.kn( self.nu-1, self.kappa*ra ) * (x-y) / ra 
-    #     return (-self(x,y) * grad)[0] 
+        bc = DirichletBC(self.V,  Constant(0.0), boundary)
+        a = inner(grad(self.u), grad(self.v))*dx + self.kappa2*self.u*self.v*dx 
+        f = Constant( 0.0 )
+        L = f*self.v*dx
+
+        A, _ = assemble_system ( a, L, bc )
         
-    # def rhs12( self, x, y ):
-    #     '''
-    #     For testing purposes only
-    #     '''
-       
-    #     ra   = np.linalg.norm(x-y)
-    #     grad = -self.kappa * self.factor * (self.kappa*ra)**(self.nu) * sp.kn( self.nu-1, self.kappa*ra ) * (x-y) / ra 
-    #     return (-self(x,y) * grad)[1] 
-            
+        self._dirichlet_var, self._g = helper.get_var_and_g( self, A )
 
 
 class Robin(Expression):
