@@ -26,7 +26,7 @@ def neumann( container, mode ):
     solve( A, tmp.vector(), b )
     solve( A, sol_neumann.vector(), assemble(tmp*v*dx) )
     helper.save_plots( sol_neumann,
-                       "Neumann Greens Function",
+                       ["Neumann", "Greens Function"],
                        container.mesh_name,
                        ran = container.ran_sol,
                        mode = mode )    
@@ -35,9 +35,9 @@ def neumann( container, mode ):
     if "square" in container.mesh_name or "parallelogram" in container.mesh_name:
          pass
     else:
-        neumann_var = container.neumann_var
+        neumann_var = container.variances( "neumann" )
         helper.save_plots( neumann_var,
-                           "Neumann Variance",
+                           ["Neumann", "Variance"],
                            container.mesh_name,
                            ran = container.ran_var,
                            mode = mode )

@@ -26,17 +26,17 @@ container = parameters.Container( mesh_name,
 
 mode = "color"
 
-print "neumann variance"
-variance.neumann_variance( container, mode )
-
-print "robin variance"
-variance.robin_variance( container, mode )
+print "fundamental"
+fundamental.fundamental( container, mode )
 
 print "neumann"
 neumann.neumann        ( container, mode )
 
-print "fundamental"
-fundamental.fundamental( container, mode )
+print "naive"
+robin.naive            ( container, mode )
+
+print "dirichlet"
+dirichlet.dirichlet    ( container, mode )
 
 print "mixed"
 robin.mixed            ( container, mode )
@@ -44,10 +44,16 @@ robin.mixed            ( container, mode )
 print "improper"
 robin.improper         ( container, mode )
 
-print "naive"
-robin.naive            ( container, mode )
+print "neumann variance"
+variance.neumann_variance( container, mode )
 
-print "dirichlet"
-dirichlet.dirichlet    ( container, mode )
+print "naive robin variance"
+variance.naive_robin_variance( container, mode )
+
+print "mixed robin variance"
+variance.mixed_robin_variance( container, mode )
+
+print "improper robin variance"
+variance.improper_robin_variance( container, mode )
 
 print

@@ -13,10 +13,11 @@ class Container():
         self.mesh_name = mesh_name
         self.dim = mesh_obj.geometry().dim()
         self.mesh_obj = mesh_obj
-        self.power = power
         self.normal = FacetNormal( mesh_obj )
         self.V  =       FunctionSpace( mesh_obj, "CG", 1 )
         self.V2 = VectorFunctionSpace( mesh_obj, "CG", 1 )
+       
+        # Not sure if need this...
         self.R  = VectorFunctionSpace( mesh_obj, 'R' , 0 )
         self.c  = TestFunction( self.R )
 
@@ -27,18 +28,13 @@ class Container():
         self.n = self.V.dim()
        
         self._sqrt_M = sqrt_M
-        self._neumann_g = None
-        self._neumann_var = None
-        self._robin_g = None
-        self._robin_var = None
-        self._dirichlet_g = None
-        self._dirichlet_var = None
+        self._variances = {}
+        self._gs = {}
+
         self.num_samples = num_samples
-              
+        
+        self.power = power
         self.set_constants()
-         
-        self.ran_var = ( 0.0, 4 * self.sig2 )
-        self.ran_sol = ( 0.0, 2 * self.sig2 )
 
     def generate( self, name ):
         file = open( "cpp/" + name + ".cpp" , 'r' )  
@@ -71,7 +67,10 @@ class Container():
             self.sig2 = np.Inf
             self.sig  = np.Inf
             self.factor = 1.0 / 2.0 / math.pi
-        
+
+        self.ran_var = ( 0.0, 4 * self.sig2 )
+        self.ran_sol = ( 0.0, 2 * self.sig2 )
+
     @property
     def sqrt_M( self ):
         if self._sqrt_M == None:
@@ -79,68 +78,21 @@ class Container():
             self._sqrt_M =  sqrtm( assemble( self.u*self.v*dx ).array() )
             print "Done!"
         return self._sqrt_M
-
-    @property
-    def neumann_g(self):
-        if self._neumann_g == None:
-            self.set_neumann_var_and_g()
-        return self._g
-
-    @property
-    def neumann_var( self ):
-        if self._neumann_var == None:
-            self.set_neumann_var_and_g()
-        return self._neumann_var
-
-    def set_neumann_var_and_g( self ):
-        a = inner(grad(self.u), grad(self.v))*dx + self.kappa2*self.u*self.v*dx
-        A = assemble(a)
-        self._neumann_var, self._g = helper.get_var_and_g( self, A )
-
-    @property
-    def robin_g(self):
-        if self._robin_g == None:
-            self.set_robin_var_and_g()
-        return self._g
-
-    @property
-    def robin_var( self ):
-        if self._robin_var == None:
-            self.set_robin_var_and_g()
-        return self._robin_var
-
-    def set_robin_var_and_g( self ):
-        a = inner(grad(self.u), grad(self.v))*dx + self.kappa2*self.u*self.v*dx + self.kappa*self.u*self.v*ds
-        A = assemble(a)
-        self._robin_var, self._g = helper.get_var_and_g( self, A )
-
-
-    @property
-    def dirichlet_g(self):
-        if self._dirichlet_g == None:
-            self.set_dirichlet_var_and_g()
-        return self._g
-
-    @property
-    def dirichlet_var( self ):
-        if self._dirichlet_var == None:
-            self.set_dirichlet_var_and_g()
-        return self._dirichlet_var
-
-    def set_dirichlet_var_and_g( self ):
     
-        def boundary(x, on_boundary):
-            return on_boundary
+    def gs( self, BC ):
+        if BC in self._gs:
+            return self._gs[BC]
+        else:
+            helper.set_vg( self, BC )
+            return self._gs[BC]
+            
+    def variances( self, BC ):
+        if BC in self._variances:
+            return self._variances[BC]
+        else:
+            helper.set_vg( self, BC )
+            return self._variances[BC]
         
-        bc = DirichletBC(self.V,  Constant(0.0), boundary)
-        a = inner(grad(self.u), grad(self.v))*dx + self.kappa2*self.u*self.v*dx 
-        f = Constant( 0.0 )
-        L = f*self.v*dx
-
-        A, _ = assemble_system ( a, L, bc )
-        
-        self._dirichlet_var, self._g = helper.get_var_and_g( self, A )
-
 
 class Robin(Expression):
 

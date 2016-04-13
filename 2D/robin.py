@@ -27,7 +27,7 @@ def mixed( container, mode ):
     solve( A, tmp.vector(), b )
     solve( A, sol_mix_rob.vector(), assemble(tmp*v*dx) )
     helper.save_plots( sol_mix_rob,
-                       "Mixed Robin Greens Function",
+                       ["Mixed Robin", "Greens Function"],
                        container.mesh_name,
                        ran = container.ran_sol,
                        mode = mode )
@@ -35,9 +35,9 @@ def mixed( container, mode ):
     if "square" in container.mesh_name or "parallelogram" in container.mesh_name:
          pass
     else:
-        mix_rob_var , _ = helper.get_var_and_g( container, A )
-        helper.save_plots( mix_rob_var,
-                           "Mixed Robin Variance",
+
+        helper.save_plots( container.variances( "mixed_robin" ),
+                           ["Mixed Robin", "Variance"],
                            container.mesh_name,
                            ran = container.ran_var,
                            mode = mode )
@@ -48,9 +48,6 @@ def mixed( container, mode ):
 #########################################################
 def improper( container, mode ):
    
-    container.power = 1
-    container.set_constants()
-
     normal = container.normal 
     u      = container.u
     v      = container.v
@@ -70,7 +67,7 @@ def improper( container, mode ):
     solve( A, tmp.vector(), b )
     solve( A, sol_imp_rob.vector(), assemble(tmp*v*dx) )
     helper.save_plots( sol_imp_rob, 
-                       "Improper Robin Greens Function",
+                       ["Improper Robin", "Greens Function"],
                        container.mesh_name,
                        ran = container.ran_sol,
                        mode = mode )
@@ -79,16 +76,12 @@ def improper( container, mode ):
     if "square" in container.mesh_name or "parallelogram" in container.mesh_name:
          pass
     else:
-        imp_rob_var , _ = helper.get_var_and_g( container, A )
-        helper.save_plots( imp_rob_var,
-                           "Improper Robin Variance",
+        helper.save_plots( container.variances( "improper_robin" ),
+                           ["Improper Robin", "Variance"],
                            container.mesh_name,
                            ran = container.ran_var,
                            mode = mode )
     
-    container.power = 2
-    container.set_constants()
-
 #########################################################
 # Naive Robin ###########################################
 #########################################################
@@ -101,7 +94,7 @@ def naive( container, mode ):
     kappa  = container.kappa
     f      = Constant( 0.0 )
     
-    a = inner(grad(u), grad(v))*dx + kappa*kappa*u*v*dx + kappa*u*v*ds
+    a = inner(grad(u), grad(v))*dx + kappa*kappa*u*v*dx + 1.42*kappa*u*v*ds
     A = assemble(a)
     L = f*v*dx
     b = assemble(L)
@@ -111,7 +104,7 @@ def naive( container, mode ):
     solve( A, tmp.vector(), b )
     solve( A, sol_naive_rob.vector(), assemble(tmp*v*dx) )
     helper.save_plots( sol_naive_rob, 
-                       "Naive Robin Greens Function",
+                       ["Naive Robin", "Greens Function"],
                        container.mesh_name,
                        ran = container.ran_sol,
                        mode = mode )
@@ -119,9 +112,8 @@ def naive( container, mode ):
     if "square" in container.mesh_name or "parallelogram" in container.mesh_name:
          pass
     else:
-        naive_rob_var , _ = helper.get_var_and_g( container, A )
-        helper.save_plots( naive_rob_var,
-                           "Naive Robin Variance",
+        helper.save_plots( container.variances( "naive_robin" ),
+                           ["Naive Robin", "Variance"],
                            container.mesh_name,
                            ran = container.ran_var,
                            mode = mode )

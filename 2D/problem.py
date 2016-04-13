@@ -1,5 +1,6 @@
 #!/usr/bin/python
 from dolfin import *
+from matplotlib import pyplot as plt
 import sys
 
 import helper
@@ -9,36 +10,26 @@ import robin
 import fundamental
 import variance
 import dirichlet
-              
-print
-print "Mesh refinements"
 
+mesh_name = "square"
+mode = "color"              
 kappa = 11. # Killing rate
 num_samples = 0
 
-mesh_obj = Mesh( "meshes/dolfin_fine.xml" )
-  
-mode = "color"
-
-for i in range( int( sys.argv[1] ) + 1 ):
-    
-    mesh_obj = refine( mesh_obj )
-    mesh_name = "dolfin_fine_" + str(i)
+mesh_obj = UnitSquareMesh( 100, 100 )
 
 container = parameters.Container( mesh_name,
                                   mesh_obj,
                                   kappa,
                                   2, # power = 2 in all my simulations
                                   num_samples )
+print "neumann"
+neumann.neumann        ( container, mode )
 
-print "robin variance"
-variance.robin_variance( container, mode )
+print "fundamental"
+fundamental.fundamental( container, mode )
+    
+print "dirichlet"
+dirichlet.dirichlet    ( container, mode )
+    
 
-print "mixed"
-robin.mixed            ( container, mode )
-
-print "improper"
-robin.improper         ( container, mode )
-
-
-print

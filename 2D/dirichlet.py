@@ -31,7 +31,7 @@ def dirichlet( container, mode ):
     solve( A, tmp.vector(), b )
     solve( A, sol_dirichlet.vector(), assemble(tmp*v*dx) )
     helper.save_plots( sol_dirichlet,
-                       "Dirichlet Greens Function",
+                       ["Dirichlet",  "Greens Function" ],
                        container.mesh_name,
                        ran = container.ran_sol,
                        mode = mode )    
@@ -39,9 +39,9 @@ def dirichlet( container, mode ):
     if "square" in container.mesh_name or "parallelogram" in container.mesh_name:
          pass
     else:
-        dirichlet_var = container.dirichlet_var
+        dirichlet_var = container.variances( "dirichlet" )
         helper.save_plots( dirichlet_var,
-                           "Dirichlet Variance",
+                           ["Dirichlet",  "Variance"],
                            container.mesh_name,
                            ran = container.ran_var,
                            mode = mode )

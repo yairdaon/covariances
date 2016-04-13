@@ -3,25 +3,18 @@ from scipy import special as sp
 from dolfin import *
 import pdb
 import math
-from matplotlib import pyplot as plt
 import os
+
+import parameters
 
 pts ={}
 pts["square"]           = [ np.array( [ 0.05  , 0.5   ] ) ]
 pts["parallelogram"]    = [ np.array( [ 0.025 , 0.025 ] ) ]
-pts["dolfin_coarse"]    = [ np.array( [ 0.45  , 0.65  ] ) ] 
-pts["dolfin_fine_0"]    = [ np.array( [ 0.45  , 0.65  ] ) ] 
-pts["dolfin_fine_1"]    = [ np.array( [ 0.45  , 0.65  ] ) ] 
-pts["dolfin_fine_2"]    = [ np.array( [ 0.45  , 0.65  ] ) ] 
-pts["dolfin_fine"]      = [ np.array( [ 0.45  , 0.65  ] ) ] 
+pts["dolfin"]           = [ np.array( [ 0.45  , 0.65  ] ) ] 
 pts["pinch"]            = [ np.array( [ 0.35  , 0.155 ] ) ]
 pts["l_shape"]          = [ np.array( [ 0.45  , 0.65  ] ),
                             np.array( [ 0.995 , 0.2   ] ),
                             np.array( [ 0.05  , 0.005 ] ) ]
-
-color_counter = 0
-colors = [ 'g' , 'b' , 'r', 'k', 'c' , 'm', 'y',  'g' , 'b' , 'r', 'k', 'c' , 'm', 'y' ]
-
 
 no_scaling =  lambda x: 1.0
 def apply_sources ( container, b, scaling = no_scaling ):
@@ -32,6 +25,44 @@ def apply_sources ( container, b, scaling = no_scaling ):
             Point ( source ),
             scaling(source)
         ).apply( b )
+
+def set_vg( container, BC ):
+
+    u = container.u
+    v = container.v
+    kappa2 = container.kappa2
+    kappa = container.kappa
+    normal = container.normal
+
+    if "mixed_robin" in BC:
+        mix_beta = parameters.Robin( container, "mix_enum", "mix_denom" )
+        a = inner(grad(u), grad(v))*dx + kappa2*u*v*dx + inner( mix_beta, normal )*u*v*ds
+        A = assemble( a )
+        
+    elif "improper_robin" in BC:
+        imp_beta = parameters.Robin( container, "imp_enum", "imp_denom" )
+        a = inner(grad(u), grad(v))*dx + kappa2*u*v*dx + inner( imp_beta, normal )*u*v*ds
+        A = assemble(a)
+        
+    elif "naive_robin" in BC:
+        a = inner(grad(u), grad(v))*dx + kappa2*u*v*dx + 1.42*kappa*u*v*ds
+        A = assemble( a )
+    
+    elif "neumann" in BC:
+        a = inner(grad(u), grad(v))*dx + kappa2*u*v*dx
+        A = assemble( a )
+
+    elif "dirichlet" in BC:
+        def boundary(x, on_boundary):
+            return on_boundary
+        f = Constant( 0.0 )
+        bc = DirichletBC(container.V, f, boundary)
+        a = inner(grad(u), grad(v))*dx + kappa2*u*v*dx 
+        A, _ = assemble_system ( a, f*v*dx, bc )
+    else:
+        raise ValueError( "Boundary condition type not supported. Go home." )
+        
+    container._variances[BC], container._gs[BC] = get_var_and_g( container, A )
 
 
 def get_var_and_g( container, A ):
@@ -99,76 +130,59 @@ def get_var_and_g( container, A ):
     )
 
     return var, g 
- 
+    
+    
 def save_plots( data, 
-                title,
+                desc,
                 mesh_name,
                 mode = "color",
                 ran = [None, None],
                 scalarbar = False ):
-    
-    global color_counter
+
+    source = pts[mesh_name][0]
+    x_range = np.arange( 0.0, 0.5, 0.005 )
     y = [] 
     x = []
 
+    plot_file = "../../PriorCov/" + mesh_name + desc[0].replace(" ","") + desc[1].split(" ")[0] + ".txt"
+    try:
+        os.remove( plot_file )
+    except:
+        pass
+        
     if "square" in mesh_name:
-        if "Greens Function" in title or "Fundamental" in title:
-            
-            x_range = np.arange( 0.0, 0.5, 0.005 )
-            source = pts["square"][0]
+        if "Greens" in desc[1]:
             slope = 0.0
             intercept = source[1] - slope * source[0]
             line = lambda x: (x, slope * x + intercept )
-                        
+
             for pt in x_range:
                 try:
-                    y.append( data( line(pt) ) ) 
-                    x.append( pt )
+                    add_point( plot_file, pt, data( line(pt) ) )
                 except:
-                    pass # so the poin't isnt in the domain. So what? Just skip!
-                
-            if color_counter > 6:
-                line_type = '-.'
-            else:
-                line_type = '-'
-
-            plt.plot( x, y, line_type, color=colors[color_counter], label = title )
-            color_counter = color_counter + 1
-        
+                    pass # so the point isn't in the domain. So what? Just skip!
+                   
             
     elif "parallelogram" in mesh_name:
-        #if "Greens Function" in title or "Fundamental" in title:
-        
-        x_range = np.arange( 0.0, 0.5, 0.005 )
-        source = pts["parallelogram"][0]
-        slope = .9
-        intercept = source[1] - slope * source[0]
-        line = lambda x: (x, slope * x + intercept )
+        if "Greens" in desc[1]:
+            slope = .9
+            intercept = source[1] - slope * source[0]
+            line = lambda x: (x, slope * x + intercept )
                
-        for pt in x_range:
-            try:
-                y.append( data( line(pt) ) ) 
-                x.append( pt )
-            except:
-                pass # The poin't isnt in the domain. So what? Just skip!
+            for pt in x_range:
+                try:
+                    add_point( plot_file, pt, data( line(pt) ) )
+                except:
+                    pass # The poin't isnt in the domain. So what? Just skip!
                 
-        
-        if color_counter > 6:
-            line_type = '-.'
-        else:
-            line_type = '-'
-       
-        plt.plot( x, y, line_type, color=colors[color_counter], label = title )
-        color_counter = color_counter + 1
-        
-            
+                    
     elif "dolfin" in mesh_name:
         
-        file_name =  mesh_name + "_" + title.replace( " ", "_" )
+        file_name =  mesh_name + "_" + desc[0].replace( " ", "_" ) + desc[1].replace( " ", "_" )
         
-        if "Fundamental" in title:
+        if "Fundamental" in desc[1]:
             plotter = plot( data, 
-                            title = title,
+                            title = desc[0],
                             mode = mode,
                             range_min = ran[0],
                             range_max = ran[1],
@@ -180,7 +194,7 @@ def save_plots( data,
 
         else:
             plotter = plot( data, 
-                            title = title,
+                            title = desc[0] + " " + desc[1],
                             mode = mode,
                             range_min = ran[0],
                             range_max = ran[1],
@@ -193,7 +207,7 @@ def save_plots( data,
         plotter.write_png( "../../PriorCov/" + file_name )
                     
     else:
-        plot( data, title = title )
+        plot( data, title = desc[0] + "_" + desc[1] )
 
        
 def update_x_xp( x, xp ):
@@ -213,9 +227,16 @@ def make_2D_parallelogram( m, n, s = 1.6 ):
     
     A = np.array( [ [ 2 , 1 ],
                     [ 1 , 2 ] ] )
-    #pdb.set_trace()
+    
     xy = np.array([x, y])
     par.coordinates()[:] = np.einsum( "ij, jk -> ki", A, xy )
 
     return par
 
+
+def add_point( plot_file, x, y ):
+    dat = str(x) + "   " + str(y) + "\n"
+    with open( plot_file, "a") as myfile:
+        myfile.write(dat)
+                               
+    

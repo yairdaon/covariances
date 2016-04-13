@@ -16,7 +16,7 @@ print "Parallelogram"
 
 
 mesh_name = "parallelogram"
-mesh_obj = helper.make_2D_parallelogram( 100, 100, 1.3 )
+mesh_obj = helper.make_2D_parallelogram( 50, 50, 1.3 )
 kappa = 11. # Killing rate
 num_samples = 0
 
@@ -28,32 +28,34 @@ container = parameters.Container( mesh_name,
 
 mode = "color"
 
-# print "neumann variance"
-variance.neumann_variance( container, mode )
+# print "fundamental"
+# fundamental.fundamental( container, mode )
 
-# print "robin variance"
-# variance.robin_variance( container, mode )
+# print "neumann"
+# neumann.neumann        ( container, mode )
 
-print "neumann"
-neumann.neumann        ( container, mode )
-    
-print "fundamental"
-fundamental.fundamental( container, mode )
-
-# print "mixed"
-# robin.mixed            ( container, mode )
-
-print "improper"
-robin.improper         ( container, mode )
-
-print "naive"
-robin.naive            ( container, mode )
+# print "naive"
+# robin.naive            ( container, mode )
 
 # print "dirichlet"
 # dirichlet.dirichlet    ( container, mode )
 
-plt.legend()
-plt.savefig( "../../PriorCov/" + mesh_name +"_section.png" )
-plt.close()
+# print "mixed"
+# robin.mixed            ( container, mode )
+
+# print "improper"
+# robin.improper         ( container, mode )
+
+# print "neumann variance"
+# variance.neumann_variance( container, mode )
+
+# print "naive robin variance"
+# variance.naive_robin_variance( container, mode )
+
+print "mixed robin variance"
+variance.mixed_robin_variance( container, mode )
+
+print "improper robin variance"
+variance.improper_robin_variance( container, mode )
 
 print
