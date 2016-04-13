@@ -10,7 +10,8 @@ import parameters
 pts ={}
 pts["square"]           = [ np.array( [ 0.05  , 0.5   ] ) ]
 pts["parallelogram"]    = [ np.array( [ 0.025 , 0.025 ] ) ]
-pts["dolfin"]           = [ np.array( [ 0.45  , 0.65  ] ) ] 
+pts["dolfin_coarse"]    = [ np.array( [ 0.45  , 0.65  ] ) ] 
+pts["dolfin_fine"]      = [ np.array( [ 0.45  , 0.65  ] ) ] 
 pts["pinch"]            = [ np.array( [ 0.35  , 0.155 ] ) ]
 pts["l_shape"]          = [ np.array( [ 0.45  , 0.65  ] ),
                             np.array( [ 0.995 , 0.2   ] ),
@@ -25,6 +26,36 @@ def apply_sources ( container, b, scaling = no_scaling ):
             Point ( source ),
             scaling(source)
         ).apply( b )
+
+def refine( mesh_name, show = False ):
+    
+    mesh_obj = Mesh( "meshes/" + mesh_name + ".xml" )
+
+    # Break point
+    p   = Point( helper.pts[mesh_name][0] )
+    tol = 0.05
+
+    # Selecting edges to refine
+    class Border(SubDomain):
+        def inside(self, x, on_boundary):
+            return near(x[0], p.x(), tol) and near(x[1], p.y(), tol)
+        
+    Border = Border()
+
+    # Number of refinements
+    nor = 2
+
+    # refine!!!
+    for i in range(nor):
+        edge_markers = EdgeFunction("bool", mesh_obj)
+        Border.mark(edge_markers, True)
+        adapt(mesh_obj, edge_markers)
+        mesh_obj = mesh_obj.child()
+        
+    if show:
+        plot(mesh_obj, interactive=True)
+    
+    return mesh_obj
 
 def set_vg( container, BC ):
 
