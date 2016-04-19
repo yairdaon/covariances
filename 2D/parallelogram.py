@@ -16,7 +16,8 @@ print "Parallelogram"
 
 
 mesh_name = "parallelogram"
-mesh_obj = helper.make_2D_parallelogram( 50, 50, 1.3 )
+mesh_obj = helper.refine( mesh_name  )
+
 kappa = 11. # Killing rate
 num_samples = 0
 
@@ -28,29 +29,29 @@ container = parameters.Container( mesh_name,
 
 mode = "color"
 
-# print "fundamental"
-# fundamental.fundamental( container, mode )
+print "fundamental"
+fundamental.fundamental( container, mode )
 
-# print "neumann"
-# neumann.neumann        ( container, mode )
+print "neumann"
+neumann.neumann        ( container, mode )
 
-# print "naive"
-# robin.naive            ( container, mode )
+print "naive"
+robin.naive            ( container, mode )
 
-# print "dirichlet"
-# dirichlet.dirichlet    ( container, mode )
+print "dirichlet"
+dirichlet.dirichlet    ( container, mode )
 
-# print "mixed"
-# robin.mixed            ( container, mode )
+print "mixed"
+robin.mixed            ( container, mode )
 
-# print "improper"
-# robin.improper         ( container, mode )
+print "improper"
+robin.improper         ( container, mode )
 
-# print "neumann variance"
-# variance.neumann_variance( container, mode )
+print "neumann variance"
+variance.neumann_variance( container, mode )
 
-# print "naive robin variance"
-# variance.naive_robin_variance( container, mode )
+print "naive robin variance"
+variance.naive_robin_variance( container, mode )
 
 print "mixed robin variance"
 variance.mixed_robin_variance( container, mode )

@@ -13,7 +13,7 @@ def fundamental( container, mode ):
     fund = Function( container.V )
     fund.interpolate( fund_xpr )
     helper.save_plots( fund, 
-                       ["FreeSpace",  "Greens Function"], 
+                       ["Free Space", "Greens Function"], 
                        container.mesh_name,
                        ran = container.ran_sol,
                        mode = mode,

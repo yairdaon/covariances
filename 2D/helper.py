@@ -29,21 +29,27 @@ def apply_sources ( container, b, scaling = no_scaling ):
 
 def refine( mesh_name, show = False ):
     
-    mesh_obj = Mesh( "meshes/" + mesh_name + ".xml" )
-
+    if "square" in mesh_name:
+        mesh_obj = UnitSquareMesh( 50, 50 )
+        nor = 2
+        tol = 0.1
+    elif "parallelogram" in mesh_name:
+        mesh_obj = make_2D_parallelogram( 50, 50, 1.4 )
+        nor = 2
+        tol = 0.35
+    else:
+        mesh_obj = Mesh( "meshes/" + mesh_name + ".xml" )
+        nor = 3
+        tol = 0.04
     # Break point
-    p   = Point( helper.pts[mesh_name][0] )
-    tol = 0.05
-
+    p   = Point( pts[mesh_name][0] )
+ 
     # Selecting edges to refine
     class Border(SubDomain):
         def inside(self, x, on_boundary):
             return near(x[0], p.x(), tol) and near(x[1], p.y(), tol)
         
     Border = Border()
-
-    # Number of refinements
-    nor = 2
 
     # refine!!!
     for i in range(nor):
@@ -171,45 +177,43 @@ def save_plots( data,
                 scalarbar = False ):
 
     source = pts[mesh_name][0]
-    x_range = np.arange( 0.0, 0.5, 0.005 )
+    x_range = np.arange( 0.0, 0.5, 0.0001 )
     y = [] 
     x = []
 
-    plot_file = "../../PriorCov/" + mesh_name + desc[0].replace(" ","") + desc[1].split(" ")[0] + ".txt"
+    plot_file   = "../../PriorCov/" + mesh_name + "_" + desc[0].replace(" ","_") + "_" + desc[1].replace(" ", "_") + ".txt"
+    line_file   = "../../PriorCov/" + mesh_name + "_Line.txt"
+    source_file = "../../PriorCov/" + mesh_name + "_Source.txt" 
     try:
         os.remove( plot_file )
+        os.remove( line_file )
+        os.remove( source_file )
     except:
         pass
         
-    if "square" in mesh_name:
+    if "square" in mesh_name or "parallelogram" in mesh_name:
         if "Greens" in desc[1]:
-            slope = 0.0
+
+            add_point( source_file, source[0], source[1] )
+            if "square" in mesh_name:
+                slope = 0.0
+            else:
+                slope = .6
+
             intercept = source[1] - slope * source[0]
+            print intercept
             line = lambda x: (x, slope * x + intercept )
 
             for pt in x_range:
                 try:
                     add_point( plot_file, pt, data( line(pt) ) )
+                    add_point( line_file, pt, line(pt)[1] )
                 except:
-                    pass # so the point isn't in the domain. So what? Just skip!
-                   
-            
-    elif "parallelogram" in mesh_name:
-        if "Greens" in desc[1]:
-            slope = .9
-            intercept = source[1] - slope * source[0]
-            line = lambda x: (x, slope * x + intercept )
-               
-            for pt in x_range:
-                try:
-                    add_point( plot_file, pt, data( line(pt) ) )
-                except:
-                    pass # The poin't isnt in the domain. So what? Just skip!
-                
-                    
+                    pass
+  
     elif "dolfin" in mesh_name:
         
-        file_name =  mesh_name + "_" + desc[0].replace( " ", "_" ) + desc[1].replace( " ", "_" )
+        file_name =  mesh_name + "_" + desc[0].replace( " ", "_" ) + "_" + desc[1].replace( " ", "_" )
         
         if "Fundamental" in desc[1]:
             plotter = plot( data, 
@@ -256,12 +260,27 @@ def make_2D_parallelogram( m, n, s = 1.6 ):
     x = np.power( x, s )
     y = np.power( y, s )
     
-    A = np.array( [ [ 2 , 1 ],
-                    [ 1 , 2 ] ] )
+    A = np.array( [ [ 2.5 , 1   ],
+                    [ 1   , 2.5 ] ] )
     
     xy = np.array([x, y])
     par.coordinates()[:] = np.einsum( "ij, jk -> ki", A, xy )
 
+    file_name = "../../PriorCov/parallelogram.txt"
+    try:
+        os.remove( file_name )
+    except:
+        pass
+
+    pts = [ np.array( [ 0.0, 0.0 ] ),
+            np.array( [ 0.0, 1.0 ] ),
+            np.array( [ 1.0, 1.0 ] ),
+            np.array( [ 1.0, 0.0 ] ),
+            np.array( [ 0.0, 0.0 ] )]
+    for pt in pts:
+        new_pt = np.dot( A, pt )
+        add_point( file_name, new_pt[0], new_pt[1] )
+            
     return par
 
 
