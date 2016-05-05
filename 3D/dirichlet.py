@@ -15,13 +15,12 @@ def dirichlet( container, mode ):
 
     u = container.u
     v = container.v
-    kappa2 = container.kappa2
-    gamma = container.gamma
+    kappa = container.kappa
     f = Constant( 0.0 )
     tmp = Function( container.V )
 
     
-    a = gamma * inner(grad(u), grad(v))*dx + kappa2*u*v*dx
+    a = inner(grad(u), grad(v))*dx + kappa*kappa*u*v*dx
     L = f*v*dx
         
     A, b = assemble_system ( a, L, bc )
@@ -33,17 +32,9 @@ def dirichlet( container, mode ):
     solve( A, sol_dirichlet.vector(), assemble(tmp*v*dx) )
     helper.save_plots( sol_dirichlet,
                        ["Dirichlet",  "Greens Function" ],
-                       container.mesh_name,
-                       ran = container.ran_sol,
-                       mode = mode )    
-   
-    if "square" in container.mesh_name or "parallelogram" in container.mesh_name:
-         pass
-    else:
-        dirichlet_var = container.variances( "dirichlet" )
-        helper.save_plots( dirichlet_var,
-                           ["Dirichlet",  "Variance"],
-                           container.mesh_name,
-                           ran = container.ran_var,
-                           mode = mode )
-    
+                       container ) 
+
+    dirichlet_var = container.variances( "dirichlet" )
+    helper.save_plots( dirichlet_var,
+                       ["Dirichlet",  "Variance"],
+                       container )    

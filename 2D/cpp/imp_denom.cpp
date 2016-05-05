@@ -7,7 +7,7 @@ namespace dolfin {
   class Denominator : public Expression
   {
   public:
-    Denominator() : Expression(), x(2), nu(0), kappa(0), factor(0) { }
+    Denominator() : Expression(), x(2), kappa(0), factor(0) { }
     
     void eval(Array<double>& values, const Array<double>& y) const
     {
@@ -16,13 +16,11 @@ namespace dolfin {
 	which is know to be better than hard thresholding 
       */
       double ra  = sqrt(  (x[0]-y[0])*(x[0]-y[0])  +  (x[1]-y[1])*(x[1]-y[1])  ) + 1E-13;
-      double phi = pow( kappa*ra, nu ) * cyl_bessel_k( nu, kappa*ra );
-      values[0] = phi * phi;
+      double phi = kappa*ra * cyl_bessel_k( 1.0, kappa*ra );
+      values[0]  = phi * phi;
     }
   public:
     const Array<double> x;
-    double kappa;
-    double nu;
     double factor;
   };
 }

@@ -14,16 +14,13 @@ import dirichlet
 mesh_name = "square"
 mode = "color"              
 kappa = 11. # Killing rate
-num_samples = 0
-
 
 mesh_obj = helper.refine( mesh_name )
 
 container = parameters.Container( mesh_name,
                                   mesh_obj,
                                   kappa,
-                                  2, # power = 2 in all my simulations
-                                  num_samples )
+                                  1.0 )
 
 print "neumann"
 neumann.neumann        ( container, mode )

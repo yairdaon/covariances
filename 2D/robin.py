@@ -12,12 +12,12 @@ def mixed( container, mode ):
     u = container.u
     v = container.v
     normal = container.normal
-    kappa = container.kappa
+    kappa2 = container.kappa2
+    gamma = container.gamma
     f = Constant( 0.0 )
     tmp = Function( container.V )
     
-
-    a = inner(grad(u), grad(v))*dx + kappa*kappa*u*v*dx + inner( beta, normal )*u*v*ds
+    a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx + inner( beta, normal )*u*v*ds
     A = assemble(a)
     L = f*v*dx
     b = assemble(L)
@@ -52,12 +52,13 @@ def improper( container, mode ):
     u      = container.u
     v      = container.v
     tmp    = Function( container.V )
-    kappa  = container.kappa
+    kappa2 = container.kappa2
+    gamma = container.gamma
     f      = Constant( 0.0 )
 
     imp_beta = parameters.Robin( container, "imp_enum", "imp_denom" )
 
-    a = inner(grad(u), grad(v))*dx + kappa*kappa*u*v*dx + inner( imp_beta, normal )*u*v*ds
+    a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx + inner( imp_beta, normal )*u*v*ds
     A = assemble(a)
     L = f*v*dx
     b = assemble(L)
@@ -91,10 +92,12 @@ def naive( container, mode ):
     u      = container.u
     v      = container.v
     tmp    = Function( container.V )
-    kappa  = container.kappa
+    kappa2  = container.kappa2
+    kappa = container.kappa
+    gamma = container.gamma
     f      = Constant( 0.0 )
     
-    a = inner(grad(u), grad(v))*dx + kappa*kappa*u*v*dx + 1.42*kappa*u*v*ds
+    a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx + 1.42*kappa*u*v*ds
     A = assemble(a)
     L = f*v*dx
     b = assemble(L)

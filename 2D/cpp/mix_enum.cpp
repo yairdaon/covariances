@@ -7,7 +7,7 @@ namespace dolfin {
   class Enumerator : public Expression
   {
   public:
-    Enumerator() : Expression(2), x(2), nu(0), kappa(0), factor(0) { }
+    Enumerator() : Expression(2), x(2), kappa(0), factor(0) { }
     
     void eval(Array<double>& values, const Array<double>& y) const
     {
@@ -29,7 +29,6 @@ namespace dolfin {
   public:
     const Array<double> x;
     double kappa;
-    double nu;
     double factor;
   };
 }

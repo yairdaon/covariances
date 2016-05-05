@@ -8,14 +8,18 @@ import os
 import parameters
 
 pts ={}
-pts["square"]           = [ np.array( [ 0.05  , 0.5   ] ) ]
-pts["parallelogram"]    = [ np.array( [ 0.025 , 0.025 ] ) ]
-pts["dolfin_coarse"]    = [ np.array( [ 0.45  , 0.65  ] ) ] 
-pts["dolfin_fine"]      = [ np.array( [ 0.45  , 0.65  ] ) ] 
-pts["pinch"]            = [ np.array( [ 0.35  , 0.155 ] ) ]
-pts["l_shape"]          = [ np.array( [ 0.45  , 0.65  ] ),
-                            np.array( [ 0.995 , 0.2   ] ),
-                            np.array( [ 0.05  , 0.005 ] ) ]
+pts["square"]           = [ np.array( [ 0.05    , 0.5   ] ) ]
+pts["tmp"]              = [ np.array( [ 0.05    , 0.5   ] ) ]
+pts["parallelogram"]    = [ np.array( [ 0.025   , 0.025 ] ) ]
+pts["dolfin_coarse"]    = [ np.array( [ 0.45    , 0.65  ] ) ] 
+pts["dolfin_fine"]      = [ np.array( [ 0.45    , 0.65  ] ) ] 
+pts["pinch"]            = [ np.array( [ 0.35    , 0.155 ] ) ]
+pts["antarctica1"]      = [ np.array( [ -1.85e6  , 9e5   ] ) ]
+pts["antarctica2"]      = [ np.array( [ 0.025   , 0.025 ] ) ]
+pts["antarctica3"]      = [ np.array( [ 0.025   , 0.025 ] ) ]
+pts["l_shape"]          = [ np.array( [ 0.45    , 0.65  ] ),
+                            np.array( [ 0.995   , 0.2   ] ),
+                            np.array( [ 0.05    , 0.005 ] ) ]
 
 no_scaling =  lambda x: 1.0
 def apply_sources ( container, b, scaling = no_scaling ):
@@ -37,10 +41,14 @@ def refine( mesh_name, show = False ):
         mesh_obj = make_2D_parallelogram( 50, 50, 1.4 )
         nor = 2
         tol = 0.35
+    elif "antarctica" in mesh_name:
+        mesh_obj = Mesh( "meshes/" + mesh_name + ".xml" )
+        nor = 30
+        tol = 1e5
     else:
         mesh_obj = Mesh( "meshes/" + mesh_name + ".xml" )
         nor = 3
-        tol = 0.04
+        tol = 0.05
     # Break point
     p   = Point( pts[mesh_name][0] )
  
@@ -57,6 +65,7 @@ def refine( mesh_name, show = False ):
         Border.mark(edge_markers, True)
         adapt(mesh_obj, edge_markers)
         mesh_obj = mesh_obj.child()
+        tol = 0.5 * tol
         
     if show:
         plot(mesh_obj, interactive=True)
@@ -69,24 +78,25 @@ def set_vg( container, BC ):
     v = container.v
     kappa2 = container.kappa2
     kappa = container.kappa
+    gamma = container.gamma
     normal = container.normal
 
     if "mixed_robin" in BC:
         mix_beta = parameters.Robin( container, "mix_enum", "mix_denom" )
-        a = inner(grad(u), grad(v))*dx + kappa2*u*v*dx + inner( mix_beta, normal )*u*v*ds
+        a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx + inner( mix_beta, normal )*u*v*ds
         A = assemble( a )
         
     elif "improper_robin" in BC:
         imp_beta = parameters.Robin( container, "imp_enum", "imp_denom" )
-        a = inner(grad(u), grad(v))*dx + kappa2*u*v*dx + inner( imp_beta, normal )*u*v*ds
+        a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx + inner( imp_beta, normal )*u*v*ds
         A = assemble(a)
         
     elif "naive_robin" in BC:
-        a = inner(grad(u), grad(v))*dx + kappa2*u*v*dx + 1.42*kappa*u*v*ds
+        a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx + 1.42*kappa*u*v*ds
         A = assemble( a )
     
     elif "neumann" in BC:
-        a = inner(grad(u), grad(v))*dx + kappa2*u*v*dx
+        a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx
         A = assemble( a )
 
     elif "dirichlet" in BC:
@@ -94,7 +104,7 @@ def set_vg( container, BC ):
             return on_boundary
         f = Constant( 0.0 )
         bc = DirichletBC(container.V, f, boundary)
-        a = inner(grad(u), grad(v))*dx + kappa2*u*v*dx 
+        a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx 
         A, _ = assemble_system ( a, f*v*dx, bc )
     else:
         raise ValueError( "Boundary condition type not supported. Go home." )
@@ -134,14 +144,12 @@ def get_var_and_g( container, A ):
         tmp2 = Function( V )
 
         b    = assemble( Constant(0.0) * container.v * dx )
-                     
-        coor = V.dofmap().tabulate_all_coordinates(mesh_obj)
-        coor.resize(( V.dim(), container.dim ))
-
+      
         vertex_values = np.zeros(mesh_obj.num_vertices())
             
+        # Iterate over vertices according to their indices
         for vertex in vertices( mesh_obj ):
-              
+      
             pt = Point( vertex.x(0), vertex.x(1) )
          
             # Apply point source
@@ -159,7 +167,7 @@ def get_var_and_g( container, A ):
             # Remove point source
             PointSource( V, pt, -1.0 ).apply( b )
                     
-        var.vector()[:] = vertex_values[dof_to_vertex_map(V)]
+        var.vector().set_local( vertex_values[dof_to_vertex_map(V)] )
 
         
     g.vector().set_local( 
@@ -177,7 +185,7 @@ def save_plots( data,
                 scalarbar = False ):
 
     source = pts[mesh_name][0]
-    x_range = np.arange( 0.0, 0.5, 0.0001 )
+    x_range = np.arange( 0.0, 0.5, 0.01 )
     y = [] 
     x = []
 
@@ -201,7 +209,6 @@ def save_plots( data,
                 slope = .6
 
             intercept = source[1] - slope * source[0]
-            print intercept
             line = lambda x: (x, slope * x + intercept )
 
             for pt in x_range:
@@ -242,7 +249,7 @@ def save_plots( data,
         plotter.write_png( "../../PriorCov/" + file_name )
                     
     else:
-        plot( data, title = desc[0] + "_" + desc[1] )
+        plot( data, title = desc[0] + "_" + desc[1], interactive = True )
 
        
 def update_x_xp( x, xp ):

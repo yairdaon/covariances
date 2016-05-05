@@ -12,6 +12,8 @@ def fundamental( container, mode ):
     helper.update_x_xp( pt, fund_xpr )
     fund = Function( container.V )
     fund.interpolate( fund_xpr )
+    print np.max( fund.vector().array() )
+    print container.sig2
     helper.save_plots( fund, 
                        ["Free Space", "Greens Function"], 
                        container.mesh_name,
