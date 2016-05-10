@@ -5,52 +5,50 @@ import pdb
 import math
 import os
 
-import parameters
-
 pts ={}
-pts["square"]           = [ np.array( [ 0.05    , 0.5   ] ) ]
-pts["tmp"]              = [ np.array( [ 0.05    , 0.5   ] ) ]
-pts["parallelogram"]    = [ np.array( [ 0.025   , 0.025 ] ) ]
-pts["dolfin_coarse"]    = [ np.array( [ 0.45    , 0.65  ] ) ] 
-pts["dolfin_fine"]      = [ np.array( [ 0.45    , 0.65  ] ) ] 
-pts["pinch"]            = [ np.array( [ 0.35    , 0.155 ] ) ]
-pts["antarctica1"]      = [ np.array( [ -1.85e6  , 9e5   ] ) ]
-pts["antarctica2"]      = [ np.array( [ 0.025   , 0.025 ] ) ]
-pts["antarctica3"]      = [ np.array( [ 0.025   , 0.025 ] ) ]
-pts["l_shape"]          = [ np.array( [ 0.45    , 0.65  ] ),
-                            np.array( [ 0.995   , 0.2   ] ),
-                            np.array( [ 0.05    , 0.005 ] ) ]
+pts["square"]           = np.array( [ 0.05    , 0.5   ] ) 
+pts["tmp"]              = np.array( [ 0.05    , 0.5   ] ) 
+pts["parallelogram"]    = np.array( [ 0.025   , 0.025 ] ) 
+pts["dolfin"]           = np.array( [ 0.45    , 0.65  ] ) 
+pts["pinch"]            = np.array( [ 0.35    , 0.155 ] ) 
+pts["antarctica"]       = np.array( [ -1850.0 , 900.0 ] )
+pts["l_shape"]          = np.array( [ 0.45    , 0.65  ] )
+pts["antarctica"]       = np.array( [ 0.0     , 0.0   ] )
+
 
 no_scaling =  lambda x: 1.0
 def apply_sources ( container, b, scaling = no_scaling ):
-    sources = pts[container.mesh_name]
-    for source in sources:
-        PointSource(
-            container.V, 
-            Point ( source ),
-            scaling(source)
-        ).apply( b )
+   
+    source = get_source( container.mesh_name )
+    PointSource( container.V, 
+                 Point ( source ),
+                 scaling( source )
+             ).apply( b )
 
-def refine( mesh_name, show = False ):
+def get_source( mesh_name ):
+    if "antarctica" in mesh_name:
+        return pts["antarctica"]
+    elif "dolfin" in mesh_name:
+        return pts["dolfin"]
+    else:
+        return pts[mesh_name]
+        
+def refine( mesh_name, nor = 2, show = False ):
     
     if "square" in mesh_name:
         mesh_obj = UnitSquareMesh( 50, 50 )
-        nor = 2
         tol = 0.1
     elif "parallelogram" in mesh_name:
         mesh_obj = make_2D_parallelogram( 50, 50, 1.4 )
-        nor = 2
         tol = 0.35
     elif "antarctica" in mesh_name:
         mesh_obj = Mesh( "meshes/" + mesh_name + ".xml" )
-        nor = 30
-        tol = 1e5
+        tol = 1e2
     else:
         mesh_obj = Mesh( "meshes/" + mesh_name + ".xml" )
-        nor = 3
         tol = 0.05
-    # Break point
-    p   = Point( pts[mesh_name][0] )
+    
+    p  = Point( get_source( mesh_name ) )
  
     # Selecting edges to refine
     class Border(SubDomain):
@@ -72,44 +70,6 @@ def refine( mesh_name, show = False ):
     
     return mesh_obj
 
-def set_vg( container, BC ):
-
-    u = container.u
-    v = container.v
-    kappa2 = container.kappa2
-    kappa = container.kappa
-    gamma = container.gamma
-    normal = container.normal
-
-    if "mixed_robin" in BC:
-        mix_beta = parameters.Robin( container, "mix_enum", "mix_denom" )
-        a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx + inner( mix_beta, normal )*u*v*ds
-        A = assemble( a )
-        
-    elif "improper_robin" in BC:
-        imp_beta = parameters.Robin( container, "imp_enum", "imp_denom" )
-        a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx + inner( imp_beta, normal )*u*v*ds
-        A = assemble(a)
-        
-    elif "naive_robin" in BC:
-        a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx + 1.42*kappa*u*v*ds
-        A = assemble( a )
-    
-    elif "neumann" in BC:
-        a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx
-        A = assemble( a )
-
-    elif "dirichlet" in BC:
-        def boundary(x, on_boundary):
-            return on_boundary
-        f = Constant( 0.0 )
-        bc = DirichletBC(container.V, f, boundary)
-        a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx 
-        A, _ = assemble_system ( a, f*v*dx, bc )
-    else:
-        raise ValueError( "Boundary condition type not supported. Go home." )
-        
-    container._variances[BC], container._gs[BC] = get_var_and_g( container, A )
 
 
 def get_var_and_g( container, A ):
@@ -138,6 +98,9 @@ def get_var_and_g( container, A ):
     
     else:
         
+        solver = LUSolver(A)
+        solver.parameters['reuse_factorization'] = True 
+           
         V = container.V
         mesh_obj = container.mesh_obj
         tmp1 = Function( V )
@@ -146,7 +109,9 @@ def get_var_and_g( container, A ):
         b    = assemble( Constant(0.0) * container.v * dx )
       
         vertex_values = np.zeros(mesh_obj.num_vertices())
-            
+          
+        total = 0
+
         # Iterate over vertices according to their indices
         for vertex in vertices( mesh_obj ):
       
@@ -156,17 +121,17 @@ def get_var_and_g( container, A ):
             PointSource( V, pt, 1.0 ).apply( b )
 
             # Apply inverse laplacian once ...
-            solve( A, tmp1.vector(), b )
+            solver.solve( tmp1.vector(), b )
 
             # ... and twice (and reassemble!!!)
-            solve( A, tmp2.vector(), assemble( tmp1 * container.v * dx ) )
-                    
+            solver.solve( tmp2.vector(), assemble( tmp1 * container.v * dx ) )
+               
             # Place the value where it belongs.
             vertex_values[vertex.index()] = tmp2.vector().array()[vertex_to_dof_map(V)[vertex.index()]]
             
             # Remove point source
             PointSource( V, pt, -1.0 ).apply( b )
-                    
+             
         var.vector().set_local( vertex_values[dof_to_vertex_map(V)] )
 
         
@@ -184,7 +149,7 @@ def save_plots( data,
                 ran = [None, None],
                 scalarbar = False ):
 
-    source = pts[mesh_name][0]
+    source = get_source( mesh_name )
     x_range = np.arange( 0.0, 0.5, 0.01 )
     y = [] 
     x = []
@@ -233,7 +198,6 @@ def save_plots( data,
                             window_height = 500,
                             window_width = 600
                             )
-
         else:
             plotter = plot( data, 
                             title = desc[0] + " " + desc[1],
@@ -247,7 +211,20 @@ def save_plots( data,
                             )
         plotter.zoom( 1.4 )
         plotter.write_png( "../../PriorCov/" + file_name )
-                    
+
+    elif "antarctica" in mesh_name:
+        
+        file_name =  mesh_name + "_" + desc[0].replace( " ", "_" ) + "_" + desc[1].replace( " ", "_" )
+        
+        plotter = plot( data, 
+                        title = desc[0],
+                        mode = mode,
+                        interactive = False,
+                        scalarbar = True,
+                        window_height = 500,
+                        window_width = 600 )
+        plotter.write_png( "../../PriorCov/" + file_name )
+
     else:
         plot( data, title = desc[0] + "_" + desc[1], interactive = True )
 

@@ -15,7 +15,7 @@ def fundamental( container, mode ):
     V = container.V
     mesh_obj = container.mesh_obj
     kappa = container.kappa
-    nu = container.nu 
+    
     y  = container.mesh_obj.coordinates()
 
     x_y = x-y
@@ -24,7 +24,7 @@ def fundamental( container, mode ):
     ra  = np.sqrt( ra ) + 1e-13
     kappara = kappa * ra
     
-    phi_arr = np.power( kappara, nu ) * sp.kv( nu, kappara )
+    phi_arr = np.power( kappara, 0.5 ) * sp.kv( 0.5, kappara )
     phi     = Function( V )
     phi.vector().set_local( phi_arr[dof_to_vertex_map(V)] )
 

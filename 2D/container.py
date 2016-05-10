@@ -6,6 +6,8 @@ import pdb
 import math
 
 import helper
+import betas
+
 class Container():
 
     def __init__( self,
@@ -25,8 +27,8 @@ class Container():
         self.V2 = VectorFunctionSpace( mesh_obj, "CG", 1 )
        
         # Not sure if need this...
-        # self.R  = VectorFunctionSpace( mesh_obj, 'R' , 0 )
-        # self.c  = TestFunction( self.R )
+        self.R  = VectorFunctionSpace( mesh_obj, 'R' , 0 )
+        self.c  = TestFunction( self.R )
 
         self.u = TrialFunction( self.V )
         self.v = TestFunction( self.V )
@@ -117,7 +119,7 @@ class Container():
                 A = assemble( a )
                 
             elif "mixed" in BC:
-                mix_beta = parameters.Robin( self, "mix_enum", "mix_denom" )
+                mix_beta = betas.Beta( self, "mix_enum", "mix_denom" )
                 a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx + inner( mix_beta, normal )*u*v*ds
                 A = assemble( a )
                 
@@ -126,7 +128,7 @@ class Container():
                 A = assemble( a )
                 
             elif "improper" in BC:
-                imp_beta = parameters.Robin( self, "imp_enum", "imp_denom" )
+                imp_beta = betas.Beta( self, "imp_enum", "imp_denom" )
                 a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx + inner( imp_beta, normal )*u*v*ds
                 A = assemble(a)
                 
@@ -134,7 +136,6 @@ class Container():
                 raise ValueError( "Boundary condition type not supported. Go home." )
                 
             self._form[BC] = A
-            pdb.set_trace()
             return self._form[BC]
 
     def gs( self, BC ):
@@ -150,46 +151,3 @@ class Container():
         else:
             self._variances[BC], self._gs[BC] = helper.get_var_and_g( self, self.form( BC ) )
             return self._variances[BC]
-        
-
-class Robin(Expression):
-
-    def __init__( self, container, enum, denom  ):
-        
-        self.container = container
-              
-        self.enum  =  self.container.generate( enum  )
-        self.denom =  self.container.generate( denom )
-              
-        self.dic = {}
-    
-    def eval( self, value, x ):
-        
-        if self.dic.has_key( ( x[0],x[1] ) ):
-            t = self.dic[ ( x[0], x[1] ) ]
-            value[0] = t[0]
-            value[1] = t[1]
-        else:
-            self.update( x )
-            
-            fe_denom = interpolate( self.denom, self.container.V ) 
-            denom = assemble( fe_denom * dx )
-                
-            fe_enum = interpolate( self.enum, self.container.V2 )
-            enum = assemble( dot(fe_enum, self.container.c) * dx )
-                        
-            value[0] = enum[0]/denom
-            value[1] = enum[1]/denom
-
-            self.dic[ ( x[0],x[1] )] = ( value[0], value[1] )
-       
-    def update( self, x ):
-
-        self.x = x
-        
-        helper.update_x_xp( x, self.denom )
-        helper.update_x_xp( x, self.enum )
-                
-   
-    def value_shape(self):
-        return (2,)

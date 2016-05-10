@@ -4,10 +4,10 @@ using boost::math::cyl_bessel_k;
 
 namespace dolfin {
   
-  class Mat : public Expression
+  class Fundamental : public Expression
   {
   public:
-    Mat() : Expression(), x(2), kappa(0), factor(0) { }
+    Fundamental() : Expression(), x(2), kappa(0), factor(0) { }
     
     void eval(Array<double>& values, const Array<double>& y) const
     {

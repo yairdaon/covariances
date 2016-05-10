@@ -6,6 +6,8 @@ import pdb
 import math
 
 import helper
+import mixed
+
 class Container():
 
     def __init__( self,
@@ -20,6 +22,8 @@ class Container():
         self.mesh_name = mesh_name
         self.dim = mesh_obj.geometry().dim()
         self.mesh_obj = mesh_obj
+        if self.dim == 3:
+            self.y = mesh_obj.coordinates()
         self.normal = FacetNormal( mesh_obj )
         self.V  =       FunctionSpace( mesh_obj, "CG", 1 )
         self.V2 = VectorFunctionSpace( mesh_obj, "CG", 1 )
@@ -40,6 +44,7 @@ class Container():
         self._variances = {}
         self._gs = {}
         self._form = {}
+        self._solvers = {}
   
         self.num_samples = num_samples
         
@@ -90,12 +95,18 @@ class Container():
             self._M = assemble( self.u*self.v*dx )
         return self._M
 
+    def solvers( self, BC ):
+        if not BC in self._solvers:
+            loc_solver = LUSolver( self.form(BC) )
+            loc_solver.parameters['reuse_factorization'] = True 
+            self._solvers[BC] = loc_solver.solve
+        return self._solvers[BC]
+
+
     def form( self, BC ):
        
-        if BC in self._form:
-            return self._form[BC]
-        else:
-
+        if not BC in self._form:
+            
             gamma = self.gamma
             kappa2 = self.kappa2
             kappa = self.kappa
@@ -117,79 +128,99 @@ class Container():
                 A = assemble( a )
                 
             elif "mixed" in BC:
-                mix_beta = parameters.Robin( self, "mix_enum", "mix_denom" )
+                mix_beta = mixed.Mixed( self )
                 a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx + inner( mix_beta, normal )*u*v*ds
                 A = assemble( a )
                 
             elif "naive" in BC:
                 a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx + 1.42*kappa*u*v*ds
                 A = assemble( a )
-                
-            elif "improper" in BC:
-                imp_beta = parameters.Robin( self, "imp_enum", "imp_denom" )
-                a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx + inner( imp_beta, normal )*u*v*ds
-                A = assemble(a)
-                
+                                
             else:
                 raise ValueError( "Boundary condition type not supported. Go home." )
                 
             self._form[BC] = A
-            pdb.set_trace()
-            return self._form[BC]
+        return self._form[BC]
 
     def gs( self, BC ):
         if BC in self._gs:
             return self._gs[BC]
         else:
-            self._variances[BC], self._gs[BC] = helper.get_var_and_g( self, self.form( BC ) )
+            self.set_vg( BC )
             return self._gs[BC]
             
     def variances( self, BC ):
         if BC in self._variances:
             return self._variances[BC]
         else:
-            self._variances[BC], self._gs[BC] = helper.get_var_and_g( self, self.form( BC ) )
+            self.set_vg( BC )
             return self._variances[BC]
-        
 
-class Robin(Expression):
 
-    def __init__( self, container, enum, denom  ):
-        
-        self.container = container
-              
-        self.enum  =  self.container.generate( enum  )
-        self.denom =  self.container.generate( denom )
-              
-        self.dic = {}
+    def set_vg( self, BC ):
     
-    def eval( self, value, x ):
+        var   = Function( self.V )
+        g     = Function( self.V )
+        n     = self.n
+        loc_solver = self.solvers(BC)
+    
+        if self.num_samples > 0:
+            tmp   = Function( self.V )
+            noise = Function( self.V )
         
-        if self.dic.has_key( ( x[0],x[1] ) ):
-            t = self.dic[ ( x[0], x[1] ) ]
-            value[0] = t[0]
-            value[1] = t[1]
-        else:
-            self.update( x )
+            for i in range( self.num_samples ):
+        
+                # White noise, weighted by mass matrix.
+                noise.vector().set_local( np.einsum( "ij, j -> i", self.sqrt_M, np.random.normal( size = n ) ) )
             
-            fe_denom = interpolate( self.denom, self.container.V ) 
-            denom = assemble( fe_denom * dx )
-                
-            fe_enum = interpolate( self.enum, self.container.V2 )
-            enum = assemble( dot(fe_enum, self.container.c) * dx )
-                        
-            value[0] = enum[0]/denom
-            value[1] = enum[1]/denom
+                # Apply inverse operator to white noise.
+                loc_solver( tmp.vector(), noise.vector() )
 
-            self.dic[ ( x[0],x[1] )] = ( value[0], value[1] )
-       
-    def update( self, x ):
+                # Variance is averaged sum of squares.
+                var.vector().set_local( var.vector().array() + tmp.vector().array()*tmp.vector().array() )
 
-        self.x = x
+                # Divid by number of samples to get average sum of squares.
+                var.vector().set_local( var.vector().array() / self.num_samples )
+    
+        else:
         
-        helper.update_x_xp( x, self.denom )
-        helper.update_x_xp( x, self.enum )
+            V = self.V
+            mesh_obj = self.mesh_obj
+            tmp1 = Function( V )
+            tmp2 = Function( V )
+
+            b    = assemble( Constant(0.0) * self.v * dx )
+                     
+            coor = V.dofmap().tabulate_all_coordinates(mesh_obj)
+            coor.resize(( V.dim(), self.dim ))
+
+            vertex_values = np.zeros(mesh_obj.num_vertices())
+            
+            for vertex in vertices( mesh_obj ):
+            
+                pt = Point( vertex.x(0), vertex.x(1) )
                 
-   
-    def value_shape(self):
-        return (2,)
+                # Apply point source
+                PointSource( V, pt, 1.0 ).apply( b )
+
+                # Apply inverse laplacian once ...
+                loc_solver( tmp1.vector(), b )
+
+                # ... and twice (and reassemble!!!)
+                loc_solver( tmp2.vector(), assemble( tmp1 * self.v * dx ) )
+                    
+                # Place the value where it belongs.
+                vertex_values[vertex.index()] = tmp2.vector().array()[vertex_to_dof_map(V)[vertex.index()]]
+            
+                # Remove point source
+                PointSource( V, pt, -1.0 ).apply( b )
+        
+            #vertex_values = np.maximum( vertex_values, 0.0 )
+            var.vector().set_local( vertex_values[dof_to_vertex_map(V)] )
+
+            g.vector().set_local( 
+                np.sqrt( self.sig2 / var.vector().array() )
+            )
+
+        self._variances[BC] = var
+        self._gs[BC] =  g 
