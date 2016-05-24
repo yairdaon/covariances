@@ -1,6 +1,9 @@
 from dolfin import *
-import helper
 import numpy as np
+
+import helper
+
+
 
 def variance( container, mode, BC ):
 
@@ -28,4 +31,8 @@ def variance( container, mode, BC ):
     
     helper.save_plots( sol_cos_var,
                        [ BC + " Constant Variance", "Greens Function"],
+                       container )
+    
+    helper.save_plots( container.variances( BC ),
+                       [ BC, "Variance"],
                        container )

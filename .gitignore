@@ -20,3 +20,5 @@
 *.gz
 *.blg
 *.out
+ffc_form*
+old/*

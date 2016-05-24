@@ -14,9 +14,6 @@ def fundamental( container, mode ):
     fund.interpolate( fund_xpr )
     helper.save_plots( fund, 
                        ["Free Space", "Greens Function"], 
-                       container.mesh_name,
-                       ran = container.ran_sol,
-                       mode = mode,
-                       scalarbar = True )
+                       container )
 
 

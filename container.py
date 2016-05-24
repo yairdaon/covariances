@@ -5,8 +5,8 @@ from dolfin import *
 import pdb
 import math
 
-import helper
-import mixed
+import mixed3D
+import betas2D
 
 class Container():
 
@@ -16,22 +16,21 @@ class Container():
                   kappa,
                   gamma = 1.0,
                   num_samples = 0,
-                  sqrt_M = None,
-                  M = None ):
+                  sqrt_M = None ):
 
         self.mesh_name = mesh_name
         self.dim = mesh_obj.geometry().dim()
         self.mesh_obj = mesh_obj
         if self.dim == 3:
-            self.y = mesh_obj.coordinates()
-        self.normal = FacetNormal( mesh_obj )
+            self.x = mesh_obj.coordinates()
+        elif self.dim == 2:
+            self.R  = VectorFunctionSpace( mesh_obj, 'R' , 0 )
+            self.c  = TestFunction( self.R )
+
         self.V  =       FunctionSpace( mesh_obj, "CG", 1 )
         self.V2 = VectorFunctionSpace( mesh_obj, "CG", 1 )
-       
-        # Not sure if need this...
-        # self.R  = VectorFunctionSpace( mesh_obj, 'R' , 0 )
-        # self.c  = TestFunction( self.R )
-
+        self.normal = FacetNormal( mesh_obj )
+        
         self.u = TrialFunction( self.V )
         self.v = TestFunction( self.V )
         self.kappa  = kappa
@@ -40,7 +39,7 @@ class Container():
         self.n = self.V.dim()
        
         self._sqrt_M = sqrt_M
-        self._M = M
+        self._M = None
         self._variances = {}
         self._gs = {}
         self._form = {}
@@ -78,14 +77,13 @@ class Container():
         self.sig  = math.sqrt( self.sig2 )
         self.factor = self.sig2
         
-        self.ran_var = ( 0.0, 4 * self.sig2 )
-        self.ran_sol = ( 0.0, 2 * self.sig2 )
-
+        self.ran = ( 0.0, 1.5 * self.sig2 )
+       
     @property
     def sqrt_M( self ):
         if self._sqrt_M == None:
             print "Preparing square root of mass matrix. This will take some time."
-            self._sqrt_M =  sqrtm( self.M )
+            self._sqrt_M =  sqrtm( self.M.array() ).real
             print "Done!"
         return self._sqrt_M
 
@@ -126,10 +124,21 @@ class Container():
             elif "neumann" in BC:
                 a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx
                 A = assemble( a )
+           
+            elif "improper" in BC:
+                if self.dim == 2:
+                    self.imp_beta = betas2D.Beta( self, "imp_enum", "imp_denom" )  
+                    a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx + Max( inner( self.imp_beta, normal ), Constant( 0.0 ) )*u*v*ds
+                    A = assemble( a )
+                elif self.dim == 3:
+                    raise ValueError( "Improper Robin Boundary not supported in 3D. Go home." )
                 
             elif "mixed" in BC:
-                mix_beta = mixed.Mixed( self )
-                a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx + inner( mix_beta, normal )*u*v*ds
+                if self.dim == 2:
+                    self.mix_beta = betas2D.Beta( self, "mix_enum", "mix_denom" )
+                elif self.dim == 3:
+                    self.mix_beta = mixed3D.Mixed( self )
+                a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx + Max( inner( self.mix_beta, normal ), Constant( 0.0 ) )*u*v*ds
                 A = assemble( a )
                 
             elif "naive" in BC:
@@ -137,7 +146,7 @@ class Container():
                 A = assemble( a )
                                 
             else:
-                raise ValueError( "Boundary condition type not supported. Go home." )
+                raise ValueError( "Boundary condition type: " + BC + " is not supported. Go home." )
                 
             self._form[BC] = A
         return self._form[BC]
@@ -197,8 +206,13 @@ class Container():
             vertex_values = np.zeros(mesh_obj.num_vertices())
             
             for vertex in vertices( mesh_obj ):
-            
-                pt = Point( vertex.x(0), vertex.x(1) )
+                    
+                if self.dim == 2:
+                    pt = Point( vertex.x(0), vertex.x(1) )
+                elif self.dim == 3:
+                    pt = Point( vertex.x(0), vertex.x(1), vertex.x(2) )
+                else:
+                    raise ValueError( "Dimension not supported. Go home." )
                 
                 # Apply point source
                 PointSource( V, pt, 1.0 ).apply( b )

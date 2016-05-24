@@ -13,15 +13,14 @@ def ordinary( container, mode, BC ):
     loc_solver = container.solvers( BC )
     L = f*v*dx
     b = assemble(L)
+    
     helper.apply_sources( container, b )
 
-    sol_mix_rob = Function( container.V )
+    sol = Function( container.V )
     loc_solver( tmp.vector(), b )
-    loc_solver( sol_mix_rob.vector(), assemble(tmp*v*dx) )
-    helper.save_plots( sol_mix_rob,
+    loc_solver( sol.vector(), assemble(tmp*v*dx) )
+    
+    helper.save_plots( sol,
                        [ BC, "Greens Function"],
                        container )
     
-    helper.save_plots( container.variances( BC ),
-                       [ BC, "Variance"],
-                       container )
