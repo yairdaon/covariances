@@ -10,7 +10,6 @@ import helper
 # Fundamental solution ##################################
 #########################################################
 def fundamental( container, mode ):
-
     
     x = helper.pts[container.mesh_name]
     
@@ -26,7 +25,7 @@ def fundamental( container, mode ):
     ra  = np.sqrt( ra ) + 1e-13
     kappara = kappa * ra
 
-    phi_arr = np.power( kappara, 0.5 ) * sp.kv( 0.5, kappara )
+    phi_arr = container.factor*np.power( kappara, 0.5 ) * sp.kv( 0.5, kappara )
     phi     = Function( V )
     phi.vector().set_local( phi_arr[dof_to_vertex_map(V)] )
 

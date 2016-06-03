@@ -43,53 +43,42 @@ class Mixed(Expression):
             ra  = np.sqrt( ra ) + 1e-13
             kappara = kappa * ra 
             
-            # Get the denominator
-            denom_left_arr = 2.0 * sp.kv( 0.5, kappara )
-            denom_left     = Function( V )
-            denom_left.vector().set_local( denom_left_arr[dof_to_vertex_map(V)] )
-           
-            denom_right_arr = np.exp( -kappara ) / np.sqrt( kappara )
-            denom_right     = Function( V )
-            denom_right.vector().set_local( denom_right_arr[dof_to_vertex_map(V)] )
 
-            denom = assemble( denom_left * denom_right * dx ) 
+            # factor = K_0.5( r ) * e^{-r} / r
+            factor_arr = sp.kv( 0.5, kappara ) * np.exp( -kappara ) * np.power( kappara , -.5 ) 
+            factor = Function( V )           
+            factor.vector().set_local( factor_arr[dof_to_vertex_map(V)] )
+            
+            # Get the denominator
+            denom = 2.0 * assemble( factor * dx ) 
 
             # First, second and third components of enumerator
-            enum_left_tmp  = kappa * kappa * sp.kv( 0.5, kappara ) * np.exp( -kappara )
-            enum_right_tmp = ( 2.0 * kappara + 1.0 ) * np.power( kappara , -2.5 ) 
-           
-            enum_left_arr0 = enum_left_tmp
-            enum_left0     = Function( V )
-            enum_left0.vector().set_local( enum_left_arr0[dof_to_vertex_map(V)] )
-            enum_right_arr0 = enum_right_tmp * y_x[:,0] 
+            enum_arr = ( 2.0 + np.power( kappara,-1) ) * np.power( kappara, -1 )
+        
+            enum_right_arr0 = enum_arr * y_x[:,0] 
             enum_right0     = Function( V )
             enum_right0.vector().set_local( enum_right_arr0[dof_to_vertex_map(V)] )
-            enum0 = assemble( enum_left0 * enum_right0 * dx )
-            
-            enum_left_arr1 = enum_left_tmp
-            enum_left1     = Function( V )
-            enum_left1.vector().set_local( enum_left_arr1[dof_to_vertex_map(V)] )
-            enum_right_arr1 = enum_right_tmp * y_x[:,1] 
+            enum0 = kappa * kappa * assemble( factor * enum_right0 * dx )
+        
+            enum_right_arr1 = enum_arr * y_x[:,1] 
             enum_right1     = Function( V )
             enum_right1.vector().set_local( enum_right_arr1[dof_to_vertex_map(V)] )
-            enum1 = assemble( enum_left1 * enum_right1 * dx )
-            
-            enum_left_arr2 = enum_left_tmp
-            enum_left2     = Function( V )
-            enum_left2.vector().set_local( enum_left_arr2[dof_to_vertex_map(V)] )
-            enum_right_arr2 = enum_right_tmp * y_x[:,2] 
+            enum1 = kappa * kappa * assemble( factor * enum_right1 * dx )
+        
+            enum_right_arr2 = enum_arr * y_x[:,2] 
             enum_right2     = Function( V )
             enum_right2.vector().set_local( enum_right_arr2[dof_to_vertex_map(V)] )
-            enum2 = assemble( enum_left2 * enum_right2 * dx )
+            enum2 = kappa * kappa * assemble( factor * enum_right2 * dx )
+       
 
             if self.normal_run:
-                value[0] = enum0/denom
-                value[1] = enum1/denom
-                value[2] = enum2/denom
+                value[0] = enum0/ denom
+                value[1] = enum1/ denom
+                value[2] = enum2/ denom
                 self.dic[(y[0], y[1], y[2])] = (value[0], value[1], value[2]) 
 
             else:
-                value[0] = ( normal[0]*enum0 + normal[1]*enum1 + normal[2]*enum2 ) / denom
+                value[0] = ( normal[0]*enum0 + normal[1]*enum1 + normal[2]*enum2 ) /denom
                 self.dic[(y[0], y[1], y[2])] = value[0]
  
 

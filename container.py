@@ -77,7 +77,7 @@ class Container():
         self.sig  = math.sqrt( self.sig2 )
         self.factor = self.sig2
         
-        self.ran = ( 0.0, 1.5 * self.sig2 )
+        self.ran = ( 0.0, 1.3 * self.sig2 )
        
     @property
     def sqrt_M( self ):

@@ -12,23 +12,25 @@ import regular
 print
 print "Green's functions and variances"              
 
-mesh_name = "antarctica1"
+mesh_name = "antarctica3"
 
 mesh_obj = helper.refine( mesh_name, 
-                          nor = 4,
+                          nor = 0,
                           tol = 200.,
                           factor = 0.6,
-                          show = False )
+                          show = True )
 
 delta = 1e-5
 kappa = math.sqrt( delta )
-gamma = 1.0 
+gamma = 1.
 
 container = container.Container( mesh_name,
                                  mesh_obj,
                                  kappa, # == Killing rate
                                  gamma = gamma
 )
+
+container.mesh_name = "antarctica"
 mode = "color"
 
 print "fundamental"
@@ -52,6 +54,12 @@ print
 print "dirichlet"
 start_time = time.time()
 regular.ordinary(container, mode, "dirichlet" )
+print "Run time: " + str( time.time() - start_time )
+print
+
+print "dirichlet variance"
+start_time = time.time()
+variance.variance( container, mode, "dirichlet" )
 print "Run time: " + str( time.time() - start_time )
 print
 

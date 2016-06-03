@@ -259,11 +259,11 @@ def save_plots( data,
                             window_width = 500
                             )
         plotter.zoom( 1.4 )
-        plotter.write_png( "../PriorCov/" + file_name )
+        # plotter.write_png( "../PriorCov/" + file_name )
 
     elif "antarctica" in container.mesh_name:
         
-        file_name =  container.mesh_name + add_desc( desc )
+        file_name =   "../PriorCov/antarctica/" + container.mesh_name + add_desc( desc )
         
         plotter = plot( data, 
                         title = make_tit( desc ),
@@ -271,13 +271,12 @@ def save_plots( data,
                         interactive = False,
                         scalarbar = "Free" in make_tit(desc),
                         range_min = container.ran[0],
-                        range_max = container.ran[1],
-                        window_height = 500,
-                        window_width = 600 )
-        #plotter.zoom( 1000.0 ) #useless!!
-        plotter.write_png( "../PriorCov/antarctica/" + file_name )
-        filename = "../PriorCov/antarctica/" + container.mesh_name + add_desc( desc )
-        loc_file = File( filename  + ".pvd" )
+                        range_max = container.ran[1] ) #,
+                        # window_height = 500,
+                        # window_width = 600 )
+        # plotter.zoom( 1222222.4 ) #useless!!
+        # plotter.write_png( file_name )
+        loc_file = File( file_name  + ".pvd" )
         loc_file << data
 
     else:

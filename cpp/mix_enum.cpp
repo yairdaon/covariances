@@ -18,13 +18,11 @@ namespace dolfin {
       double ra  = sqrt(  (x[0]-y[0])*(x[0]-y[0])  +  (x[1]-y[1])*(x[1]-y[1])  ) + 1E-13;
       
       double phi1 = cyl_bessel_k( 0.0, kappa*ra );
-      double phi2 = kappa*ra * cyl_bessel_k( 1.0, kappa*ra );
-      
-      double dphi1 = -cyl_bessel_k( 1.0, kappa*ra );
-      double dphi2 =  kappa*ra * cyl_bessel_k( 0.0, kappa*ra );
-            
-      values[0] = 0.5 * ( phi1 * dphi2 + phi2 * dphi1 ) * kappa * (x[0] - y[0]) / ra;
-      values[1] = 0.5 * ( phi1 * dphi2 + phi2 * dphi1 ) * kappa * (x[1] - y[1]) / ra;
+      double phi2 = cyl_bessel_k( 1.0, kappa*ra );
+      double tot  = kappa * kappa * (phi1*phi1 + phi2*phi2);
+
+      values[0] =  tot * (x[0] - y[0]);
+      values[1] =  tot * (x[1] - y[1]);
     }
   public:
     const Array<double> x;
