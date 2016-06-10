@@ -18,15 +18,18 @@ class Container():
                   num_samples = 0,
                   sqrt_M = None ):
 
+        if "antarctica" in mesh_name:
+            mesh_name = "antarctica"
         self.mesh_name = mesh_name
         self.dim = mesh_obj.geometry().dim()
         self.mesh_obj = mesh_obj
         if self.dim == 3:
             self.x = mesh_obj.coordinates()
+            self.nu = 0.5
         elif self.dim == 2:
             self.R  = VectorFunctionSpace( mesh_obj, 'R' , 0 )
             self.c  = TestFunction( self.R )
-
+            self.nu = 1
         self.V  =       FunctionSpace( mesh_obj, "CG", 1 )
         self.V2 = VectorFunctionSpace( mesh_obj, "CG", 1 )
         self.normal = FacetNormal( mesh_obj )
@@ -73,10 +76,9 @@ class Container():
         
         # Here we compensate - we now have covariance
         # [ gamma * (-Delta + kappa^2 / gamma ) ]^2
-        self.sig2 = gamma**2 / 4.0 / math.pi / kappa2 
+        self.sig2 = gamma**2 * (4.0*math.pi)**(-self.dim/2.) * kappa2**(-self.nu)
         self.sig  = math.sqrt( self.sig2 )
-        self.factor = self.sig2
-        
+        self.factor = self.sig2 * 2**(1-self.nu) / math.gamma( self.nu )
         self.ran = ( 0.0, 1.3 * self.sig2 )
        
     @property

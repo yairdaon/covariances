@@ -2,7 +2,7 @@ run:
 	./square.py
 	./parallelogram.py
 	./antarctica.py
-	./cube_greens.py
+	./cube.py
 
 clean:
 	rm -rvf *~ *.pyc cpp/*~

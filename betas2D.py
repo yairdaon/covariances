@@ -19,33 +19,43 @@ class Beta(Expression):
               
         self.dic = {}
     
-    def eval( self, value, x ):
+    def eval( self, value, y ):
         
-        if self.dic.has_key( ( x[0],x[1] ) ):
-            t = self.dic[ ( x[0], x[1] ) ]
+        if self.dic.has_key( ( y[0],y[1] ) ):
+            t = self.dic[ ( y[0], y[1] ) ]
             value[0] = t[0]
             value[1] = t[1]
         else:
-            self.update( x )
+            self.update( y )
             
             fe_denom = interpolate( self.denom, self.container.V ) 
             denom = assemble( fe_denom * dx )
                 
-            fe_enum = interpolate( self.enum, self.container.V2 )
+            fe_enum  = interpolate( self.enum, self.container.V2 )
             enum = assemble( dot(fe_enum, self.container.c) * dx )
                         
             value[0] = enum[0]/denom
             value[1] = enum[1]/denom
 
-            self.dic[ ( x[0],x[1] )] = ( value[0], value[1] )
+            self.dic[ ( y[0],y[1] )] = ( value[0], value[1] )
        
-    def update( self, x ):
+    def update( self, y ):
 
-        self.x = x
+        self.y = y
         
-        helper.update_x_xp( x, self.denom )
-        helper.update_x_xp( x, self.enum )
+        self.update_y_xp( y, self.denom )
+        self.update_y_xp( y, self.enum )
                 
    
+    def update_y_xp( self, y, xp ):
+        '''
+        given a 2D expression xp, update its
+        x variable.
+        in terms of the paper, x is a boundary point
+        which is denoted there by y
+        '''
+        xp.y[0] = y[0]
+        xp.y[1] = y[1]
+
     def value_shape(self):
         return (2,)

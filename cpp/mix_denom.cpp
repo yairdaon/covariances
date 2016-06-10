@@ -7,9 +7,9 @@ namespace dolfin {
   class Denominator : public Expression
   {
   public:
-    Denominator() : Expression(), x(2), kappa(0), factor(0) { }
+    Denominator() : Expression(), y(2), kappa(0), factor(0) { }
     
-    void eval(Array<double>& values, const Array<double>& y) const
+    void eval(Array<double>& values, const Array<double>& x) const
     {
       /*
 	I added 1E-13 to avoid ra = 0. This addition enforces *soft* thresholding
@@ -20,7 +20,7 @@ namespace dolfin {
     }
 
   public:
-    const Array<double> x;
+    const Array<double> y;
     double kappa;
     double factor;
   };
