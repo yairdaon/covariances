@@ -17,13 +17,13 @@ import mixed3D
 kappa = 11.0
                   
 mesh_name = "cube"
-mesh_obj = helper.refine_cube( 53, 217, 79,
-                               nor = 0,
-                               tol = .3,
-                               factor = .8,
-                               show = True,
-                               betas = True,
-                               slope = 0.4 )
+mesh_obj = helper.refine_cube( 67, 219, 87,nor = 0 )
+
+                               # tol = .3,
+                               # factor = .8,
+                               # show = True,
+                               # betas = True,
+                               # slope = 0.4 )
 
 container = container.Container( mesh_name,
                                  mesh_obj,
@@ -38,7 +38,7 @@ y = lambda s: s
 z = lambda s: 0.5
 
 pt_list = np.linspace(0.05,0.95,87)
-file_name = "../PriorCov/cube/Beta.txt"
+file_name = "data/cube/beta.txt"
 try:
     os.remove( file_name )
 except:

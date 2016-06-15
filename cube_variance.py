@@ -14,14 +14,14 @@ print
 print "Cube"            
 
 mesh_name = "cube"
-mesh_obj = helper.refine_cube( 5, 5, 5, 
-                               nor = 5, 
-                               tol = 0.15,
-                               factor = .8,
-                               show = True,
-                               refine_source = True,
-                               refine_face = False,
-                               refine_cross = True )
+mesh_obj = helper.refine_cube( 25, 67, 53, nor = 0 )
+                               # nor = 0, 
+                               # tol = 0.15,
+                               # factor = .8,
+                               # show = False,
+                               # refine_source = True,
+                               # refine_face = False,
+                               # refine_cross = True )
 
 container = container.Container( mesh_name,
                                  mesh_obj,

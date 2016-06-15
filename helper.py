@@ -203,7 +203,7 @@ def make_2D_parallelogram( m, n, s = 1.6 ):
     # use einsum to apply matrix A to all points xy.
     par.coordinates()[:] = np.einsum( "ij, jk -> ki", A, xy )
 
-    file_name = "../PriorCov/parallelogram.txt"
+    file_name = "data/parallelogram/vertices.txt"
     try:
         os.remove( file_name )
     except:
@@ -245,23 +245,26 @@ def save_plots( data,
     a routine to save plots and data for plots, based
     on the description variable desc.
     '''
-
+    plot_file   = "data/" + container.mesh_name + "/" + add_desc( desc )
+    line_file   = "data/" + container.mesh_name + "/line.txt"
+    source_file = "data/" + container.mesh_name + "/source.txt" 
+    
     try:
         os.remove( plot_file )
         os.remove( line_file )
         os.remove( source_file )
     except:
         pass
-        
+           
     if "square" in container.mesh_name or "parallelogram" in container.mesh_name:
-        x_range = np.hstack( ( np.arange( -0.1 , 0.05, 0.005 ),
+        x_range = np.hstack( ( np.arange( -0.1 , 0.05, 0.001 ),
                                np.arange(  0.05, 0.5 , 0.01  ) ) )
         y = [] 
         x = []
     
         source = get_source( container.mesh_name )
-        line_file   = "../PriorCov/" + container.mesh_name + "_Line.txt"
-        source_file = "../PriorCov/" + container.mesh_name + "_Source.txt" 
+        line_file   = "data/" + container.mesh_name + "_Line.txt"
+        source_file = "data/" + container.mesh_name + "_Source.txt" 
     
         if "Greens" in add_desc( desc ):
 
@@ -282,8 +285,7 @@ def save_plots( data,
                     pass
   
     else:        
-        file_name =   "../PriorCov/" + container.mesh_name + "/" + add_desc( desc )
-        loc_file = File( file_name  + ".pvd" )
+        loc_file = File( plot_file + ".pvd" )
         loc_file << data
 
 def cube_normal( y ):

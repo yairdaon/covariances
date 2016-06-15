@@ -33,47 +33,47 @@ container = container.Container( mesh_name,
 container.mesh_name = "antarctica"
 mode = "color"
 
-# print "fundamental"
-# start_time = time.time()
-# fundamental2D.fundamental( container, mode )
-# print "Run time: " + str( time.time() - start_time )
-# print
+print "fundamental"
+start_time = time.time()
+fundamental2D.fundamental( container, mode )
+print "Run time: " + str( time.time() - start_time )
+print
 
-# print "neumann"
-# start_time = time.time()
-# regular.ordinary(container, mode, "neumann" )
-# print "Run time: " + str( time.time() - start_time )
-# print
+print "neumann"
+start_time = time.time()
+regular.ordinary(container, mode, "neumann" )
+print "Run time: " + str( time.time() - start_time )
+print
 
-# print "neumann variance"
-# start_time = time.time()
-# variance.variance( container, mode, "neumann" )
-# print "Run time: " + str( time.time() - start_time )
-# print
+print "neumann variance"
+start_time = time.time()
+variance.variance( container, mode, "neumann" )
+print "Run time: " + str( time.time() - start_time )
+print
 
-# print "dirichlet"
-# start_time = time.time()
-# regular.ordinary(container, mode, "dirichlet" )
-# print "Run time: " + str( time.time() - start_time )
-# print
+print "dirichlet"
+start_time = time.time()
+regular.ordinary(container, mode, "dirichlet" )
+print "Run time: " + str( time.time() - start_time )
+print
 
-# print "dirichlet variance"
-# start_time = time.time()
-# variance.variance( container, mode, "dirichlet" )
-# print "Run time: " + str( time.time() - start_time )
-# print
+print "dirichlet variance"
+start_time = time.time()
+variance.variance( container, mode, "dirichlet" )
+print "Run time: " + str( time.time() - start_time )
+print
 
-# print "naive" 
-# start_time = time.time()
-# regular.ordinary(container, mode, "naive robin" )
-# print "Run time: " + str( time.time() - start_time )
-# print
+print "naive" 
+start_time = time.time()
+regular.ordinary(container, mode, "naive robin" )
+print "Run time: " + str( time.time() - start_time )
+print
 
-# print "naive robin variance"
-# start_time = time.time()
-# variance.variance( container, mode, "naive robin" )
-# print "Run time: " + str( time.time() - start_time )
-# print
+print "naive robin variance"
+start_time = time.time()
+variance.variance( container, mode, "naive robin" )
+print "Run time: " + str( time.time() - start_time )
+print
 
 print "improper"
 start_time = time.time()
