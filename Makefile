@@ -3,10 +3,25 @@ run:
 	./parallelogram.py
 	./antarctica.py
 	./cube.py
-hpc:
-	rm -rvf results.o*
-	rm -rvf tests.o*
-	sbatch tests
+tmp:
+	rm -rvf tmp.o*
+	sbatch tmp
+
+tests:
+	rm -rvf test.o*
+	sbatch test
+
+simple:
+	rm -rvf results_simple.o*
+	sbatch simple
+
+parallelogram:
+	rm -rvf results_parallelogram.o*
+	sbatch parall
+
+full: 
+	rm -rvf results_full.o*
+	sbatch full
 
 clean:
 	rm -rvf *~ *.pyc cpp/*~

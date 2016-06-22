@@ -204,7 +204,7 @@ class Container():
                 
             # The homogeneous Robin BC suggested by Roininen et al.
             elif "naive" in BC:
-                a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx + 1.42*kappa*u*v*ds
+                a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx +  1./1.42*kappa*u*v*ds
                 A = assemble( a )
                 
             else:

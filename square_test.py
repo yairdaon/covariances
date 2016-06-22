@@ -1,17 +1,10 @@
 #!/usr/bin/python
 import scipy as sp
 import numpy as np
-import math
-import sys
-import time
-import pdb
-import os
-import matplotlib.pyplot as plt
 
 from dolfin import *
 
 import container
-import helper
 import betas2D
 
 def imp_enum( x0,x1, kappa, n ):
@@ -25,7 +18,6 @@ def imp_denom( x0,x1, kappa, n ):
     kappara = kappa * ra 
     tmp = np.power( sp.special.kv( 0.0, kappara ), 2 )
     return np.sum(tmp) / n**2
-
 
 def mix_enum( x0,x1, kappa, n ):
     ra = np.sqrt( x0*x0 + x1*x1 ) + 1e-13
@@ -46,7 +38,7 @@ x0 = np.linspace(   0, 1.0, n, endpoint = False )
 x1 = np.linspace( -.5,  .5, n, endpoint = False )
 X0, X1 = np.meshgrid( x0, x1 )
 
-kappa = 1.0
+kappa = 5.0
                   
 mesh_name = "square"
 mesh_obj = UnitSquareMesh( n, n )
@@ -72,18 +64,18 @@ nx_imp_denom = imp_denom(X0,X1,kappa,n)
 nx_mix_enum  = mix_enum (X0,X1,kappa,n)
 nx_mix_denom = mix_denom(X0,X1,kappa,n)
 
-print "Improper fenics  enum0 = " + str( fe_imp_enum0 )     
+print "Improper fenics  enum0 = " + str(-fe_imp_enum0 )     
 print "Improper numerix enum0 = " + str( nx_imp_enum  )
 print "Improper fenics  denom = " + str( fe_imp_denom )     
 print "Improper numerix denom = " + str( nx_imp_denom )
 
-print "Mixed    fenics  enum0 = " + str( fe_mix_enum0 )
+print "Mixed    fenics  enum0 = " + str(-fe_mix_enum0 )
 print "Mixed    numerix enum0 = " + str( nx_mix_enum  )
 print "Mixed    fenics  denom = " + str( fe_mix_denom )
 print "Mixed    numerix denom = " + str( nx_mix_denom )
 
-print "Improper fenics  beta  = " + str( fe_imp_beta )
-print "Improper numerix beta  = " + str( nx_imp_enum0 / nx_imp_denom )
-print "Mixed    fenics  beta  = " + str( fe_mix_beta )
-print "Mixed    numerix beta  = " + str( nx_mix_enum0 / nx_mix_denom )
+print "Improper fenics  beta  = " + str(-fe_imp_beta[0]             )
+print "Improper numerix beta  = " + str( nx_imp_enum / nx_imp_denom )
+print "Mixed    fenics  beta  = " + str(-fe_mix_beta[0]             )
+print "Mixed    numerix beta  = " + str( nx_mix_enum / nx_mix_denom )
 

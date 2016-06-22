@@ -10,7 +10,6 @@ import regular
 
 
 mesh_name = "square"
-mode = "color"              
 kappa = 11. # Killing rate
 
 mesh_obj = helper.refine( mesh_name,
@@ -19,23 +18,23 @@ mesh_obj = helper.refine( mesh_name,
                           factor = 0.5 )
 
 container = container.Container( mesh_name,
-                                  mesh_obj,
-                                  kappa )
+                                 mesh_obj,
+                                 kappa )
 
 print "fundamental"
 start_time = time.time()
-fundamental2D.fundamental( container, mode )
+fundamental2D.fundamental( container )
 print "Run time: " + str( time.time() - start_time )
 print
 
 print "neumann"
 start_time = time.time()
-regular.ordinary(container, mode, "neumann" )
+regular.ordinary(container, "neumann" )
 print "Run time: " + str( time.time() - start_time )
 print
 
 print "dirichlet"
 start_time = time.time()
-regular.ordinary(container, mode, "dirichlet" )
+regular.ordinary(container, "dirichlet" )
 print "Run time: " + str( time.time() - start_time )
 print

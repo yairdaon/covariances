@@ -1,15 +1,13 @@
 import numpy as np
-from scipy import special as sp
 from dolfin import *
 import pdb
 import math
 import os
 
-import matplotlib.pyplot as plt
-
 '''
 This is a helper file. It contains routines
-that are somewhat peripheral to the run
+that are somewhat peripheral to the actual 
+math done in a run
 '''
 
 # pts is a dictionary of source location
@@ -24,6 +22,16 @@ pts["antarctica"]       = np.array( [ -1.5e3  , 600.0 ] )
 pts["extra"]            = np.array( [ 7e2     , 5e2   ] )
 pts["l_shape"]          = np.array( [ 0.45    , 0.65  ] )
 pts["cube"]             = np.array( [ 0.05, 0.5, 0.5  ] ) 
+
+
+def generate( expression_string ):
+    '''
+    Generate the expression from the c++ file that
+    the input variable refers to.
+    '''
+    loc_file = open( "cpp/" + expression_string + ".cpp" , 'r' )  
+    code = loc_file.read()
+    return Expression( code ) 
 
 # If we do not scale the input (i.e. we don't use variance
 # normalization).
@@ -82,10 +90,10 @@ def refine( mesh_name,
     iteration refinement.
     '''
     if "square" in mesh_name:
-        mesh_obj = UnitSquareMesh( 50, 50 )
+        mesh_obj = UnitSquareMesh( 673, 673 )
         p  = Point( pts[mesh_name] )    
     elif "parallelogram" in mesh_name:
-        mesh_obj = make_2D_parallelogram( 50, 50, 1.4 )
+        mesh_obj = make_2D_parallelogram( 573, 573, 1.1 )
         p  = Point( pts[mesh_name] )
     elif "antarctica" in mesh_name:
         mesh_obj = Mesh( "meshes/" + mesh_name + ".xml" )
@@ -221,19 +229,6 @@ def make_2D_parallelogram( m, n, s = 1.6 ):
             
     return par
 
-
-def add_point( plot_file, *args ):
-    '''
-    a routine to add a point to a file
-    '''
-    dat = ""
-    for coordinate in args:
-        dat = dat + str(coordinate) + "   " 
-    dat = dat + "\n"
-    with open( plot_file, "a") as myfile:
-        myfile.write(dat)
-
-
     
 def save_plots( data, 
                 desc,
@@ -245,26 +240,20 @@ def save_plots( data,
     a routine to save plots and data for plots, based
     on the description variable desc.
     '''
-    plot_file   = "data/" + container.mesh_name + "/" + add_desc( desc )
-    line_file   = "data/" + container.mesh_name + "/line.txt"
-    source_file = "data/" + container.mesh_name + "/source.txt" 
     
-    try:
-        os.remove( plot_file )
-        os.remove( line_file )
-        os.remove( source_file )
-    except:
-        pass
-           
     if "square" in container.mesh_name or "parallelogram" in container.mesh_name:
+
+        line_file   = "data/" + container.mesh_name + "/line.txt"
+        source_file = "data/" + container.mesh_name + "/source.txt" 
+        plot_file   = "data/" + container.mesh_name + "/" + add_desc( desc ) + ".txt"
+        empty_file( line_file, source_file, plot_file )
+
         x_range = np.hstack( ( np.arange( -0.1 , 0.05, 0.001 ),
                                np.arange(  0.05, 0.5 , 0.01  ) ) )
         y = [] 
         x = []
     
         source = get_source( container.mesh_name )
-        line_file   = "data/" + container.mesh_name + "_Line.txt"
-        source_file = "data/" + container.mesh_name + "_Source.txt" 
     
         if "Greens" in add_desc( desc ):
 
@@ -285,36 +274,8 @@ def save_plots( data,
                     pass
   
     else:        
-        loc_file = File( plot_file + ".pvd" )
+        loc_file = File( "data/" + container.mesh_name + "/" + add_desc( desc ) + ".pvd" )
         loc_file << data
-
-def cube_normal( y ):
-    
-    # z
-    if abs( y[2] - 0.0 ) < 1e-10:
-        return ( 0.0, 0.0, -1.0 )
-        
-    elif abs( y[2] - 1.0 ) < 1e-10:
-        return ( 0.0, 0.0, 1.0 )
-
-    # y
-    elif abs( y[1] - 0.0 ) < 1e-10:
-        return ( 0.0, -1.0, 0.0 )
-        
-    elif abs( y[1] - 1.0 ) < 1e-10:
-        return ( 0.0, 1.0, 0.0 )
-    
-    # x
-    elif abs( y[0] - 0.0 ) < 1e-10:
-        return ( -1.0, 0.0, 0.0 )
-            
-    elif abs( y[0] - 1.0 ) < 1e-10:
-        return ( 1.0, 0.0, 0.0 )
-            
-    # interior
-    else:
-        return False
-
 
 def add_desc( str_list ):
     res = ""
@@ -327,3 +288,20 @@ def make_tit( desc ):
     for p in desc:
         res = res + " " + p.title()
         return res
+
+def empty_file( *args ):
+    for file_name in args:
+        open(file_name, 'w').close()
+
+        
+def add_point( plot_file, *args ):
+    '''
+    a routine to add a point to a file
+    '''
+    dat = ""
+    for coordinate in args:
+        dat = dat + str(coordinate) + "   " 
+    dat = dat + "\n"
+    open( plot_file, "a").write(dat)
+
+

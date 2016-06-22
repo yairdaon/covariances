@@ -16,7 +16,6 @@ namespace dolfin {
 	which is sometimes better than hard thresholding 
       */
       double ra    = sqrt(  (x[0]-y[0])*(x[0]-y[0])  +  (x[1]-y[1])*(x[1]-y[1])  ) + 1E-13;
-      
       double tmp = kappa * cyl_bessel_k( 0.0, kappa*ra ) * cyl_bessel_k( 1.0, kappa*ra ) / ra;
       values[0]  = tmp * (y[1] - x[1]);
     }

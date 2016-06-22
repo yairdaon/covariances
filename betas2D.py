@@ -71,10 +71,8 @@ class IntegratedExpression(Expression):
         self.container = container
         
         # Generate the expression from the c++ file that
-        # the input variable xpr refers to.
-        file = open( "cpp/" + expression_string + ".cpp" , 'r' )  
-        code = file.read()
-        xp = Expression( code ) #, element = container.V.ufl_element() )
+        # the input variable expresion_string refers to.
+        xp = helper.generate( expression_string )
             
         xp.kappa  = container.kappa / math.sqrt( container.gamma )
         xp.factor = container.factor

@@ -1,7 +1,6 @@
 from dolfin import *
 from scipy import special as sp
 import numpy as np
-import pdb
 
 import helper
 
@@ -9,7 +8,7 @@ import helper
 #########################################################
 # Fundamental solution ##################################
 #########################################################
-def fundamental( container, mode ):
+def fundamental( container ):
     
     x = helper.pts[container.mesh_name]
     

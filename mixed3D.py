@@ -14,17 +14,15 @@ class Mixed(Expression):
     variant of the Robin boundary condition. This class 
     does the calculation for 3D problems.
     '''
-    def __init__( self, container, normal_run = True ):
-
-        # Normal run is what you want to use. It means
-        # the expression evaluates to a (3,) tuple. Then
-        # You want to take inner( mixed, normal ),
-        # to evaluate the beta we use. 
-        self.normal_run = normal_run
+    def __init__( self, container, reg = 1e-12 ):
         
         # Holds pretty much every single possible
         # parameter, mesh, FunctionSpace etc.
         self.container = container
+        
+        # The regularization we use to ensure we don't evaluate
+        # the integrand close to zero
+        self.reg = reg
 
         # Store results of previous calculations,
         # so we don't need to perform them again.
@@ -41,18 +39,9 @@ class Mixed(Expression):
         # If we have the key, we don't need to perform
         # the lengthy calculation again.
         if self.dic.has_key( (y[0], y[1], y[2] ) ):
-            t =  self.dic[ ( y[0], y[1], y[2] ) ]
-            if self.normal_run:
-                value[0] = t[0]
-                value[1] = t[1]
-                value[2] = t[2]
-            else:
-                value[0] = t
+            value[0], value[1], value[2] = self.dic[ ( y[0], y[1], y[2] ) ]
+            
         else:
-            normal = helper.cube_normal( y )
-            if not ( self.normal_run or normal ):
-                value[0] = 0.0
-                return
                 
             V = self.container.V
             kappa = self.container.kappa
@@ -61,9 +50,8 @@ class Mixed(Expression):
             y_x = y-x
             ra  = y_x * y_x
             ra  = np.sum( ra, axis = 1 )
-            ra  = np.sqrt( ra ) + 1e-13
+            ra  = np.sqrt( ra ) + self.reg
             kappara = kappa * ra 
-            
 
             # factor = K_0.5( r ) * e^{-r} / r
             factor_arr = sp.kv( 0.5, kappara ) * np.exp( -kappara ) * np.power( kappara , -0.5 ) 
@@ -89,18 +77,11 @@ class Mixed(Expression):
             enum_right2     = Function( V )
             enum_right2.vector().set_local( enum_right_arr2[dof_to_vertex_map(V)] )
             enum2 = kappa * kappa * assemble( factor * enum_right2 * dx )
-       
-
-            if self.normal_run:
-                value[0] = enum0 / denom
-                value[1] = enum1 / denom
-                value[2] = enum2 / denom
-                self.dic[(y[0], y[1], y[2])] = (value[0], value[1], value[2]) 
-
-            else:
-                value[0] = ( normal[0]*enum0 + normal[1]*enum1 + normal[2]*enum2 ) /denom
-                self.dic[(y[0], y[1], y[2])] = value[0]
- 
+                   
+            value[0] = enum0 / denom
+            value[1] = enum1 / denom
+            value[2] = enum2 / denom
+            self.dic[(y[0], y[1], y[2])] = (value[0], value[1], value[2]) 
 
     def value_shape( self ):
         return  (3,)

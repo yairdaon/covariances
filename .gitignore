@@ -22,3 +22,4 @@
 *.out
 ffc_form*
 old/*
+*.o*

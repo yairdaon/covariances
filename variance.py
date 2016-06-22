@@ -5,7 +5,7 @@ import helper
 
 
 
-def variance( container, mode, BC ):
+def variance( container, BC ):
 
     u = container.u
     v = container.v

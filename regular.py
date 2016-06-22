@@ -1,7 +1,7 @@
 from dolfin import *
 import helper
 
-def ordinary( container, mode, BC ):
+def ordinary( container, BC ):
 
     u = container.u
     v = container.v
