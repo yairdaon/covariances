@@ -13,7 +13,6 @@ import regular
 print
 print "Cube"            
 
-mesh_name = "cube"
 mesh_obj = helper.refine_cube( 25, 67, 53, nor = 0 )
                                # nor = 0, 
                                # tol = 0.15,
@@ -23,12 +22,10 @@ mesh_obj = helper.refine_cube( 25, 67, 53, nor = 0 )
                                # refine_face = False,
                                # refine_cross = True )
 
-container = container.Container( mesh_name,
+container = container.Container( "cube",
                                  mesh_obj,
-                                 11., # == kappa == Killing rate
-                                 num_samples = 0 )
-
-mode = "color"
+                                 5. ) # == kappa == Killing rate
+                                 
 
 print "fundamental"
 start_time = time.time()

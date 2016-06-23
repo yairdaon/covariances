@@ -26,7 +26,7 @@ mesh_obj = helper.refine( mesh_name,
 
 container = container.Container( mesh_name,
                                  mesh_obj,
-                                 11. # == kappa == Killing rate
+                                 5. # == kappa == Killing rate
                              )
    
 imp_beta = betas2D.Beta( container, "imp" )

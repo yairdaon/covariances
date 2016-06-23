@@ -1,30 +1,20 @@
 #!/usr/bin/python
-import scipy.integrate as spi
-import scipy as sp
 import numpy as np
 import math
-import sys
 import time
-import pdb
-import os
-import matplotlib.pyplot as plt
 
 from dolfin import *
 
 import container
 import helper
 import betas2D
-   
-kappa = 5.0
-                  
-mesh_name = "square"
+                 
 mesh_obj = UnitSquareMesh( 673, 673 )
 
-
-container = container.Container( mesh_name,
+container = container.Container( "square",
                                  mesh_obj,
-                                 kappa, # == kappa == Killing rate
-                                 num_samples = 0 )
+                                 5.0 ) # == kappa == Killing rate
+                                 
 
 imp_beta = betas2D.Beta( container, "imp" )
 mix_beta = betas2D.Beta( container, "mix" )
@@ -32,7 +22,7 @@ mix_beta = betas2D.Beta( container, "mix" )
 x = lambda s: 0.0
 y = lambda s: s
 
-pt_list = np.linspace(0.05,0.95,87)
+pt_list = np.linspace(0.00,1.0,101)
 imp_beta_file = "data/square/imp_beta.txt"
 mix_beta_file = "data/square/mix_beta.txt"
 helper.empty_file( imp_beta_file, mix_beta_file )

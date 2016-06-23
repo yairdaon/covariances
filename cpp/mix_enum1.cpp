@@ -17,9 +17,9 @@ namespace dolfin {
       */
       double ra  = sqrt(  (x[0]-y[0])*(x[0]-y[0])  +  (x[1]-y[1])*(x[1]-y[1])  ) + 1E-13;
       
-      double phi1 = cyl_bessel_k( 0.0, kappa*ra );
-      double phi2 = cyl_bessel_k( 1.0, kappa*ra );
-      double tot  = kappa * kappa * (phi1*phi1 + phi2*phi2);
+      double phi0 = cyl_bessel_k( 0.0, kappa*ra );
+      double phi1 = cyl_bessel_k( 1.0, kappa*ra );
+      double tot  = kappa * kappa * (phi0*phi0 + phi1*phi1);
       
       values[0] =  tot * (y[1] - x[1]);
     }

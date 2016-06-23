@@ -19,7 +19,7 @@ mesh_obj = helper.refine( mesh_name,
 
 container = container.Container( mesh_name,
                                  mesh_obj,
-                                 11. # == kappa == Killing rate
+                                 5. # == kappa == Killing rate
                              )
 print "fundamental"
 start_time = time.time()

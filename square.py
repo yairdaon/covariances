@@ -8,18 +8,14 @@ import fundamental2D
 import variance
 import regular
 
-
-mesh_name = "square"
-kappa = 11. # Killing rate
-
 mesh_obj = helper.refine( mesh_name,
                           nor = 4,
                           tol = 0.15,
                           factor = 0.5 )
 
-container = container.Container( mesh_name,
+container = container.Container( "square", # mesh_name
                                  mesh_obj,
-                                 kappa )
+                                 5. ) # Killing rate
 
 print "fundamental"
 start_time = time.time()
