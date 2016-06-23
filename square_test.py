@@ -6,6 +6,7 @@ from dolfin import *
 
 import container
 import betas2D
+import helper
 
 def imp_enum( x0,x1, kappa, n ):
     ra = np.sqrt( x0*x0 + x1*x1 ) + 1e-13
@@ -33,20 +34,18 @@ def mix_denom( x0,x1, kappa, n ):
     tmp =   kappara * sp.special.kv( 0.0, kappara ) * sp.special.kv( 1.0, kappara )
     return 2.0 * np.sum(tmp) / n**2  
 
-n = 17 * 17 * 13
+n = 13 * 17 * 17
 x0 = np.linspace(   0, 1.0, n, endpoint = False )   
 x1 = np.linspace( -.5,  .5, n, endpoint = False )
 X0, X1 = np.meshgrid( x0, x1 )
 
 kappa = 5.0
                   
-mesh_name = "square"
 mesh_obj = UnitSquareMesh( n, n )
 
-container = container.Container( mesh_name,
+container = container.Container( "square",
                                  mesh_obj,
-                                 kappa, # == kappa == Killing rate
-                                 num_samples = 0 )
+                                 kappa ) # == kappa == Killing 
 
 fe_imp_denom = betas2D.IntegratedExpression( container, "imp_denom" )(0.0,0.5)
 fe_imp_enum0 =-betas2D.IntegratedExpression( container, "imp_enum0" )(0.0,0.5)
@@ -64,18 +63,22 @@ nx_imp_denom = imp_denom(X0,X1,kappa,n)
 nx_mix_enum  = mix_enum (X0,X1,kappa,n)
 nx_mix_denom = mix_denom(X0,X1,kappa,n)
 
-print "Improper fenics  enum0 = " + str(-fe_imp_enum0 )     
-print "Improper numerix enum0 = " + str( nx_imp_enum  )
-print "Improper fenics  denom = " + str( fe_imp_denom )     
-print "Improper numerix denom = " + str( nx_imp_denom )
+file_name = "../PriorCov/data/square/pointwise.txt"
+helper.empty_file( file_name )
+open( file_name, "a" ).write( "Kappa                  = " + str( kappa         ) + "\n" )
 
-print "Mixed    fenics  enum0 = " + str(-fe_mix_enum0 )
-print "Mixed    numerix enum0 = " + str( nx_mix_enum  )
-print "Mixed    fenics  denom = " + str( fe_mix_denom )
-print "Mixed    numerix denom = " + str( nx_mix_denom )
+open( file_name, "a" ).write(  "Improper fenics  enum0 = " + str( fe_imp_enum0 ) + "\n" )     
+open( file_name, "a" ).write(  "Improper numerix enum0 = " + str( nx_imp_enum  ) + "\n" )
+open( file_name, "a" ).write(  "Improper fenics  denom = " + str( fe_imp_denom ) + "\n" )     
+open( file_name, "a" ).write(  "Improper numerix denom = " + str( nx_imp_denom ) + "\n" )
 
-print "Improper fenics  beta  = " + str(-fe_imp_beta[0]             )
-print "Improper numerix beta  = " + str( nx_imp_enum / nx_imp_denom )
-print "Mixed    fenics  beta  = " + str(-fe_mix_beta[0]             )
-print "Mixed    numerix beta  = " + str( nx_mix_enum / nx_mix_denom )
+open( file_name, "a" ).write(  "Mixed    fenics  enum0 = " + str( fe_mix_enum0 ) + "\n" )
+open( file_name, "a" ).write(  "Mixed    numerix enum0 = " + str( nx_mix_enum  ) + "\n" )
+open( file_name, "a" ).write(  "Mixed    fenics  denom = " + str( fe_mix_denom ) + "\n" )
+open( file_name, "a" ).write(  "Mixed    numerix denom = " + str( nx_mix_denom ) + "\n" )
+
+open( file_name, "a" ).write(  "Improper fenics  beta  = " + str(-fe_imp_beta[0]             ) + "\n" )
+open( file_name, "a" ).write(  "Improper numerix beta  = " + str( nx_imp_enum / nx_imp_denom ) + "\n" )
+open( file_name, "a" ).write(  "Mixed    fenics  beta  = " + str(-fe_mix_beta[0]             ) + "\n" )
+open( file_name, "a" ).write(  "Mixed    numerix beta  = " + str( nx_mix_enum / nx_mix_denom ) + "\n" )
 

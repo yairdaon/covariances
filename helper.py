@@ -93,7 +93,8 @@ def refine( mesh_name,
         mesh_obj = UnitSquareMesh( 673, 673 )
         p  = Point( pts[mesh_name] )    
     elif "parallelogram" in mesh_name:
-        mesh_obj = make_2D_parallelogram( 573, 573, 1.1 )
+        n = 13 * 17 * 17
+        mesh_obj = make_2D_parallelogram( n, n, 1.1 )
         p  = Point( pts[mesh_name] )
     elif "antarctica" in mesh_name:
         mesh_obj = Mesh( "meshes/" + mesh_name + ".xml" )
@@ -212,10 +213,7 @@ def make_2D_parallelogram( m, n, s = 1.6 ):
     par.coordinates()[:] = np.einsum( "ij, jk -> ki", A, xy )
 
     file_name = "data/parallelogram/vertices.txt"
-    try:
-        os.remove( file_name )
-    except:
-        pass
+    empty_file( file_name )
 
     # Now we save to a file the vertices of the
     # parallelogram - for plotting purposes.    

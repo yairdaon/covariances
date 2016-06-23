@@ -11,16 +11,15 @@ import regular
 print
 print "Parallelogram"            
 
-mesh_name = "parallelogram"
-mesh_obj = helper.refine( mesh_name,
+mesh_obj = helper.refine( "parallelogram",
                           nor = 1,
                           tol = 0.35,
                           factor = 0.66 )
 
-container = container.Container( mesh_name,
+container = container.Container( "parallelogram",
                                  mesh_obj,
-                                 5. # == kappa == Killing rate
-                             )
+                                 5. ) # == kappa == Killing rate
+
 print "fundamental"
 start_time = time.time()
 fundamental2D.fundamental( container )

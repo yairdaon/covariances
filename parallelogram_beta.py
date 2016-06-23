@@ -13,18 +13,15 @@ import container
 import helper
 import betas2D
 
-
-
 print
 print "Parallelogram beta"            
 
-mesh_name = "parallelogram"
-mesh_obj = helper.refine( mesh_name,
-                          nor = 1,
+mesh_obj = helper.refine( "parallelogram",
+                          nor = 0,
                           tol = 0.35,
                           factor = 0.66 )
 
-container = container.Container( mesh_name,
+container = container.Container( "parallelogram",
                                  mesh_obj,
                                  5. # == kappa == Killing rate
                              )
@@ -39,8 +36,8 @@ y = lambda s: 2.5 * s
 nn = np.array( [-2.5, 1.0] ) / math.sqrt( 1 + 2.5**2 )
 
 pt_list = np.linspace(0.01,0.99,87)
-imp_beta_file = "data/parallelogram/imp_beta.txt"
-mix_beta_file = "data/parallelogram/mix_beta.txt"
+imp_beta_file = "../PriorCov/data/parallelogram/imp_beta.txt"
+mix_beta_file = "../PriorCov/data/parallelogram/mix_beta.txt"
 helper.empty_file( imp_beta_file, mix_beta_file )
 
 # imp_list = []
