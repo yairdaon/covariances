@@ -1,12 +1,14 @@
 import numpy as np
 from scipy import special as sp
 from scipy.linalg import sqrtm as sqrtm
-from dolfin import *
-import pdb
 import math
+
+from dolfin import *
 
 import container
 import helper
+
+print "\n\n\n\n\n\n\n\n\n\nOBSOLETE!!!!!!!!!!!!! \n\n\n\n\n\n\n\n\n\n"
 
 class Mixed(Expression):
     '''

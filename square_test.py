@@ -7,6 +7,7 @@ from dolfin import *
 import container
 import betas2D
 import helper
+from helper import dic as dic
 
 def imp_enum( x0,x1, kappa, n ):
     ra = np.sqrt( x0*x0 + x1*x1 ) + 1e-13
@@ -26,22 +27,28 @@ def mix_enum( x0,x1, kappa, n ):
     k0 = sp.special.kv( 0.0, kappara )
     k1 = sp.special.kv( 1.0, kappara )
     tmp = (   np.power(k0,2)  +  np.power(k1,2)   ) * x0 
-    return kappa**2 * np.sum(tmp) / n**2
+    return kappa * np.sum(tmp) / n**2
 
 def mix_denom( x0,x1, kappa, n ):
     ra = np.sqrt( x0*x0 + x1*x1 ) + 1e-13
     kappara = kappa * ra 
-    tmp =   kappara * sp.special.kv( 0.0, kappara ) * sp.special.kv( 1.0, kappara )
+    tmp = ra * sp.special.kv( 0.0, kappara ) * sp.special.kv( 1.0, kappara )
     return 2.0 * np.sum(tmp) / n**2  
 
-n = 13 * 17 * 17
+
+n = 17 * 17 * 19
+dic["square"].x = dic["square"].y = 17 * 13 * 17
+
 x0 = np.linspace(   0, 1.0, n, endpoint = False )   
 x1 = np.linspace( -.5,  .5, n, endpoint = False )
 X0, X1 = np.meshgrid( x0, x1 )
 
 kappa = 5.0
-                  
-mesh_obj = UnitSquareMesh( n, n )
+mesh_obj = helper.get_refined_mesh( "square",
+                                    nor = 2,
+                                    tol = 0.4,
+                                    factor = 0.9,
+                                    greens = True )
 
 container = container.Container( "square",
                                  mesh_obj,
@@ -49,11 +56,11 @@ container = container.Container( "square",
 
 fe_imp_denom = betas2D.IntegratedExpression( container, "imp_denom" )(0.0,0.5)
 fe_imp_enum0 =-betas2D.IntegratedExpression( container, "imp_enum0" )(0.0,0.5)
-fe_imp_enum1 = betas2D.IntegratedExpression( container, "imp_enum1" )(0.0,0.5)
+#fe_imp_enum1 = betas2D.IntegratedExpression( container, "imp_enum1" )(0.0,0.5)
 
 fe_mix_denom = betas2D.IntegratedExpression( container, "mix_denom" )(0.0,0.5)
 fe_mix_enum0 =-betas2D.IntegratedExpression( container, "mix_enum0" )(0.0,0.5)
-fe_mix_enum1 = betas2D.IntegratedExpression( container, "mix_enum1" )(0.0,0.5)
+#fe_mix_enum1 = betas2D.IntegratedExpression( container, "mix_enum1" )(0.0,0.5)
 
 fe_imp_beta  = betas2D.Beta( container, "imp" )(0.0,0.5)
 fe_mix_beta  = betas2D.Beta( container, "mix" )(0.0,0.5)
@@ -65,7 +72,7 @@ nx_mix_denom = mix_denom(X0,X1,kappa,n)
 
 file_name = "../PriorCov/data/square/pointwise.txt"
 helper.empty_file( file_name )
-open( file_name, "a" ).write( "Kappa                  = " + str( kappa         ) + "\n" )
+open( file_name, "a" ).write(  "Kappa                  = " + str( kappa        ) + "\n" )
 
 open( file_name, "a" ).write(  "Improper fenics  enum0 = " + str( fe_imp_enum0 ) + "\n" )     
 open( file_name, "a" ).write(  "Improper numerix enum0 = " + str( nx_imp_enum  ) + "\n" )
@@ -82,3 +89,6 @@ open( file_name, "a" ).write(  "Improper numerix beta  = " + str( nx_imp_enum / 
 open( file_name, "a" ).write(  "Mixed    fenics  beta  = " + str(-fe_mix_beta[0]             ) + "\n" )
 open( file_name, "a" ).write(  "Mixed    numerix beta  = " + str( nx_mix_enum / nx_mix_denom ) + "\n" )
 
+
+
+print open( file_name, "r").read()

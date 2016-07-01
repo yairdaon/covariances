@@ -1,27 +1,28 @@
 #!/usr/bin/python
-from dolfin import *
 import time
 
+from dolfin import *
 
 import container
 import helper
 import fundamental3D
 import variance
 import regular
+import parameters
 
 print
 print "Cube"            
 
-mesh_obj = helper.refine_cube( 6, 6, 6, 
-                               nor = 4, 
-                               tol = 0.2,
-                               factor = 1.0,
-                               show = False,
-                               greens = True )
+mesh_obj = helper.get_refined_mesh( "cube", 
+                                    nor = 4, 
+                                    tol = 0.2,
+                                    factor = 1.0,
+                                    show = False,
+                                    greens = True )
 
 container = container.Container( "cube",
                                  mesh_obj,
-                                 5. ) # == kappa == Killing rate
+                                 parameters.cube.kappa ) # == kappa == Killing rate
 
 print "fundamental"
 start_time = time.time()

@@ -12,10 +12,10 @@ namespace dolfin {
     void eval(Array<double>& values, const Array<double>& x) const
     {
       /*
-	I added 1E-13 to avoid ra = 0. This addition enforces *soft* thresholding
+	I added 1E-9 to avoid ra = 0. This addition enforces *soft* thresholding
 	which is know to be better than hard thresholding 
       */
-      double ra = sqrt(  (x[0]-y[0])*(x[0]-y[0])  +  (x[1]-y[1])*(x[1]-y[1])  ) + 1E-13;
+      double ra = sqrt(  (x[0]-y[0])*(x[0]-y[0])  +  (x[1]-y[1])*(x[1]-y[1])  ) + 1E-9;
       values[0] = factor * kappa*ra * cyl_bessel_k( 1.0, kappa*ra );
     }
   public:

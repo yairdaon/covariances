@@ -1,11 +1,10 @@
 import numpy as np
 from scipy import special as sp
 from scipy.linalg import sqrtm as sqrtm
-from dolfin import *
-import pdb
 import math
 
-import mixed3D
+from dolfin import *
+
 import betas2D
 
 class Container():
@@ -39,7 +38,7 @@ class Container():
             self.nu = 0.5
         elif self.dim == 2:
             self.nu = 1
-
+            
         # The vector space of finite element fucntions that approximates 
         # all of the continuous problems we (try to) solve.
         self.V  =       FunctionSpace( mesh_obj, "CG", 1 )
@@ -198,7 +197,7 @@ class Container():
                 if self.dim == 2:
                     self.mix_beta = betas2D.Beta( self, "mix" )
                 elif self.dim == 3:
-                    self.mix_beta = mixed3D.Mixed( self )
+                    self.mix_beta = betas2D.Mix3D( self, "mix2" )
                 a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx + Max( inner( self.mix_beta, normal ), Constant( 0.0 ) )*u*v*ds
                 A = assemble( a )
                 
@@ -280,7 +279,7 @@ class Container():
             b    = assemble( Constant(0.0) * self.v * dx )
                      
             # Get all coordiantes
-            coor = V.dofmap().tabulate_all_coordinates(mesh_obj)
+            coor = V.tabulate_dof_coordinates()
             coor.resize(( V.dim(), self.dim ))
 
             vertex_values = np.zeros(mesh_obj.num_vertices())

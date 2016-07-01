@@ -3,8 +3,6 @@ import numpy as np
 
 import helper
 
-
-
 def variance( container, BC ):
 
     u = container.u

@@ -23,3 +23,4 @@
 ffc_form*
 old/*
 *.o*
+tmp.py

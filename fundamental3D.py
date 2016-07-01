@@ -1,16 +1,17 @@
-from dolfin import *
 from scipy import special as sp
 import numpy as np
 
-import helper
+from dolfin import *
 
+import helper
+from helper import dic as dic
 
 #########################################################
 # Fundamental solution ##################################
 #########################################################
 def fundamental( container ):
     
-    x = helper.pts[container.mesh_name]
+    x = dic[container.mesh_name].source
     
     V = container.V
     mesh_obj = container.mesh_obj

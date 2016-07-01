@@ -1,37 +1,13 @@
 import numpy as np
-from dolfin import *
-import pdb
 import math
-import os
+
+from dolfin import *
 
 '''
 This is a helper file. It contains routines
 that are somewhat peripheral to the actual 
 math done in a run
 '''
-
-# pts is a dictionary of source location
-# for various meshes.
-pts ={}
-pts["square"]           = np.array( [ 0.05    , 0.5   ] ) 
-pts["tmp"]              = np.array( [ 0.05    , 0.5   ] ) 
-pts["parallelogram"]    = np.array( [ 0.025   , 0.025 ] ) 
-pts["dolfin"]           = np.array( [ 0.45    , 0.65  ] ) 
-pts["pinch"]            = np.array( [ 0.35    , 0.155 ] ) 
-pts["antarctica"]       = np.array( [ -1.5e3  , 600.0 ] )
-pts["extra"]            = np.array( [ 7e2     , 5e2   ] )
-pts["l_shape"]          = np.array( [ 0.45    , 0.65  ] )
-pts["cube"]             = np.array( [ 0.05, 0.5, 0.5  ] ) 
-
-
-def generate( expression_string ):
-    '''
-    Generate the expression from the c++ file that
-    the input variable refers to.
-    '''
-    loc_file = open( "cpp/" + expression_string + ".cpp" , 'r' )  
-    code = loc_file.read()
-    return Expression( code ) 
 
 # If we do not scale the input (i.e. we don't use variance
 # normalization).
@@ -46,40 +22,89 @@ def apply_sources ( container, b, scaling = no_scaling ):
     # Add two sources in antarctica - one in the bulk
     # and one in the western part, where boundary is
     # tight.
-    if "antarctica" in container.mesh_name:
+    name = container.mesh_name
+    if "antarctica" in name:
+        ant = dic["antarctica"]
         PointSource( container.V, 
-                     Point ( pts["antarctica"] ),
-                     scaling( pts["antarctica"] )
+                     Point  ( ant.source ),
+                     scaling( ant.source )
                  ).apply( b )
         PointSource( container.V, 
-                     Point ( pts["extra"] ),
-                     scaling( pts["extra"] )
+                     Point  ( ant.center_source ),
+                     scaling( ant.center_source )
                  ).apply( b )
         return
-    elif "dolfin" in container.mesh_name:
-        source = pts["dolfin"]
-    else:
-        source = pts[container.mesh_name]
+    elif "square" in name:
+        source = dic["square"].source
+    elif "parallelogram" in name:
+        source = dic["parallelogram"].source
+    elif "cube" in  name:
+        source = dic["cube"].source
     
     PointSource( container.V, 
                  Point ( source ),
                  scaling( source )
-             ).apply( b )
-
-def get_source( mesh_name ):
-    if "antarctica" in mesh_name:
-        return Point ( pts["antarctica"] )
-    else:
-        return Point ( pts[mesh_name] )
-           
+                 ).apply( b )
     
-def refine( mesh_name,
-            nor = 3, # Number Of Refinements
-            tol = 0.1, # tolerance
-            factor = 0.5,
-            show = False ):
+def get_mesh( mesh_name ):
     '''
-    Generate then refine a mesh, usually around a source.
+    Generate a mesh.
+    '''
+    
+    pts = [ np.array( [ 0.0, 1.0 ] ),
+            np.array( [ 1.0, 1.0 ] ),
+            np.array( [ 1.0, 0.0 ] ),
+            np.array( [ 0.0, 0.0 ] ),
+            np.array( [ 0.0, 1.0 ] ),
+            np.array( [ 1.0, 1.0 ] ),
+            np.array( [ 1.0, 0.0 ] ),
+            np.array( [ 0.0, 0.0 ] )]
+       
+    if "square" in mesh_name:
+        file_name = "../PriorCov/data/square/vertices.txt"
+        empty_file( file_name )
+        for pt in pts:
+            add_point( file_name, pt[0], pt[1] )
+        return UnitSquareMesh( dic["square"].x, dic["square"].y )
+    
+    elif "parallelogram" in mesh_name:
+        
+        par = dic["parallelogram"]
+        mesh_obj = UnitSquareMesh( par.x, par.y )
+
+        # The matrix that sends the unit square
+        # to the parallelogram.
+        A = par.transformation
+                
+        # Apply matrix A to all points in xy.
+        mesh_obj.coordinates()[:] = np.einsum( "ij, kj -> ki", A, mesh_obj.coordinates() )
+         
+        file_name = "../PriorCov/data/parallelogram/vertices.txt"
+        empty_file( file_name )
+
+        # Now we save to a file the vertices of the
+        # parallelogram - for plotting purposes.    
+        for pt in pts:
+            new_pt = np.dot( A, pt )
+            add_point( file_name, new_pt[0], new_pt[1] )
+         
+        return mesh_obj
+    
+    elif "antarctica" in mesh_name:
+        return Mesh( "meshes/antarctica3.xml" )
+    
+    elif "cube" in mesh_name:
+        return UnitCubeMesh( dic["cube"].x, dic["cube"].y, dic["cube"].z )
+        
+def get_refined_mesh( mesh_name, 
+                      nor = 3, 
+                      tol = 0.1,
+                      factor = 0.5,
+                      greens = False,
+                      variance = False,
+                      betas = False ):
+    '''
+    Generate and refine a mesh, usually around a source.
     
     nor is number of refinements - how many refinement 
     iterations we take.
@@ -89,143 +114,86 @@ def refine( mesh_name,
     factor - by how much the region shrinks with each 
     iteration refinement.
     '''
-    if "square" in mesh_name:
-        mesh_obj = UnitSquareMesh( 673, 673 )
-        p  = Point( pts[mesh_name] )    
-    elif "parallelogram" in mesh_name:
-        n = 13 * 17 * 17
-        mesh_obj = make_2D_parallelogram( n, n, 1.1 )
-        p  = Point( pts[mesh_name] )
-    elif "antarctica" in mesh_name:
-        mesh_obj = Mesh( "meshes/" + mesh_name + ".xml" )
-        p  = Point( pts["antarctica"] )
-    else:
-        mesh_obj = Mesh( "meshes/" + mesh_name + ".xml" )
-        p  = Point( pts[mesh_name] )
-    
-    
 
-    # Selecting edges to refine
-    class AreaToRefine(SubDomain):
-        def inside(self, x, on_boundary):
-            return near(x[0], p.x(), tol) and near(x[1], p.y(), tol)
-    dom = AreaToRefine()
-
-    # refine nor times
-    for i in range(nor):
-        edge_markers = EdgeFunction("bool", mesh_obj)
-        dom.mark(edge_markers, True)
-        adapt(mesh_obj, edge_markers)
-        mesh_obj = mesh_obj.child()
-        tol = tol * factor # change the size of the region
+    # Start with an unmodified mesh.
+    mesh_obj = get_mesh( mesh_name )
+    
+    if "cube" in mesh_name:
         
-    if show:
-        plot(mesh_obj, interactive=True)
-    
-    return mesh_obj
-
-
-
-def refine_cube( m, n, k, 
-                 nor = 4, 
-                 tol = 0.1,
-                 factor = 0.5,
-                 show = False,
-                 greens = False,
-                 variance = False,
-                 betas = False,
-                 slope = 0.25,
-                 s = 1.6):
-    '''
-    See refine method but this is specific for a cube
-    in 3D.
-    '''
-    mesh_obj = UnitCubeMesh( m, n, k )
-
-    # First make a denser mesh towards r=a
-  
-    if betas:
+        cub = dic["cube"]
+        # if False:
+        #     x = mesh_obj.coordinates()[:,0]
+        #     y = mesh_obj.coordinates()[:,1]
+        #     z = mesh_obj.coordinates()[:,2]
+        #     x = np.power( x, cub.s )
+        #     z = cub.a*z*z*z + cub.b*z*z + cub.c*z
+        #     mesh_obj.coordinates()[:] = np.transpose( np.array( [ x, y, z ] ) )
         
-        A = np.array( [ [1    ,    1,    1],
-                        [0.125, 0.25,  0.5], 
-                        [0.75 ,    1,    1]
-                    ] )
-        b = np.array( [1, 0.5, slope ] )
-        a, b, c = np.linalg.solve( A, b )
-        
-        x = mesh_obj.coordinates()[:,0]
-        y = mesh_obj.coordinates()[:,1]
-        z = mesh_obj.coordinates()[:,2]
-        x = np.power( x, s )
-        z = a*z*z*z + b*z*z + c*z
-        mesh_obj.coordinates()[:] =  np.transpose( np.array( [ x, y, z ] ) )
-
- 
-    # Break point
-    p   = Point( pts["cube"] )
-    
-    # Selecting edges to refine
-    class AreaToRefine(SubDomain):
-        def inside(self, x, on_boundary):
+        def inside( x, p ):
             face   = variance and near(x[0], 0.0, tol ) 
-            cross  = greens and near(x[1], 0.5, tol ) and near(x[0], p.x(), tol) and near(x[1], p.y(), tol) and near(x[2], p.z(), tol)
-            return face or cross 
+            cross  = ( greens and 
+                       near(x[1], 0.5 , tol ) and 
+                       near(x[0], p[0], tol ) and 
+                       near(x[1], p[1], tol ) and 
+                       near(x[2], p[2], tol )
+                       )
+            line   = ( betas and 
+                       near(x[0], 0.0, tol ) and 
+                       near(x[1], 0.5, tol ) 
+                       )
+            return face or cross or line
+       
+    elif "parallelogram" in mesh_name:
+
+        # Selecting edges to refine
+        def inside( x, p ):
+            A = dic["parallelogram"].transformation
+            cross    = ( greens and 
+                         near(x[0], p[0], tol ) and 
+                         near(x[1], p[1], tol ) 
+                         )
+            boundary = ( betas and 
+                         near( x[1] , x[0]*A[1,1]/A[0,1], tol ) 
+                         )
             
+            return cross or boundary
+                
+        # Make a denser mesh towards r=a
+        mesh_obj.coordinates()[:] = np.power( mesh_obj.coordinates(), dic["parallelogram"].s )
+
+    
+    elif "antarctica" in mesh_name:
+        
+        # Implements the refine or not function
+        # and the default is not to refine at all. 
+        inside = lambda x, p: False
+        
+    elif "square" in mesh_name:
+        
+         def inside( x, p ):
+             return ( greens and 
+                      near(x[0], p[0], tol ) and 
+                      near(x[1], p[1], tol ) 
+                      )
+    
+    
+    # Selecting edges to refine
+    class AreaToRefine(SubDomain):
+        def inside( self, x, on_boundary ):
+            return inside( x, self.loc_source )
     dom = AreaToRefine()
+    dom.loc_source = dic[mesh_name].source
 
     # refine!!!
-    for i in range(nor):
+    for i in range(nor): # nor: Number Of Refinements
         edge_markers = EdgeFunction("bool", mesh_obj)
         dom.mark(edge_markers, True)
         adapt(mesh_obj, edge_markers)
         mesh_obj = mesh_obj.child()
         tol = tol * factor
         
-    if show:
-        plot(mesh_obj, interactive=True)
-    
     return mesh_obj
 
-
-def make_2D_parallelogram( m, n, s = 1.6 ):
-    '''
-    Generate the parallelogram mesh by
-    stretching and squeezing
-    '''
-
-    par = UnitSquareMesh( m,n )
-
-    # First make a denser mesh towards r=a
-    x = par.coordinates()[:,0]
-    y = par.coordinates()[:,1]
-
-    x = np.power( x, s )
-    y = np.power( y, s )
-    
-    # The matrix that sends the unit square
-    # to the parallelogram.
-    A = np.array( [ [ 2.5 , 1   ],
-                    [ 1   , 2.5 ] ] )
-    
-    xy = np.array([x, y])
-
-    # use einsum to apply matrix A to all points xy.
-    par.coordinates()[:] = np.einsum( "ij, jk -> ki", A, xy )
-
-    file_name = "data/parallelogram/vertices.txt"
-    empty_file( file_name )
-
-    # Now we save to a file the vertices of the
-    # parallelogram - for plotting purposes.    
-    pts = [ np.array( [ 0.0, 1.0 ] ),
-            np.array( [ 1.0, 1.0 ] ),
-            np.array( [ 1.0, 0.0 ] ),
-            np.array( [ 0.0, 0.0 ] )]
-    for pt in pts:
-        new_pt = np.dot( A, pt )
-        add_point( file_name, new_pt[0], new_pt[1] )
-            
-    return par
 
     
 def save_plots( data, 
@@ -241,38 +209,36 @@ def save_plots( data,
     
     if "square" in container.mesh_name or "parallelogram" in container.mesh_name:
 
-        line_file   = "data/" + container.mesh_name + "/line.txt"
-        source_file = "data/" + container.mesh_name + "/source.txt" 
-        plot_file   = "data/" + container.mesh_name + "/" + add_desc( desc ) + ".txt"
+        line_file   = "../PriorCov/data/" + container.mesh_name + "/line.txt"
+        source_file = "../PriorCov/data/" + container.mesh_name + "/source.txt"    
+        plot_file   = "../PriorCov/data/" + container.mesh_name + "/" + add_desc( desc ) + ".txt"
         empty_file( line_file, source_file, plot_file )
+
+        source = dic[container.mesh_name].source
+        add_point( source_file, source[0], source[1] )
 
         x_range = np.hstack( ( np.arange( -0.1 , 0.05, 0.001 ),
                                np.arange(  0.05, 0.5 , 0.01  ) ) )
         y = [] 
         x = []
-    
-        source = get_source( container.mesh_name )
-    
-        if "Greens" in add_desc( desc ):
+                
+        if "square" in container.mesh_name:
+            slope = 0.0
+        else:
+            slope = .6
 
-            add_point( source_file, source[0], source[1] )
-            if "square" in container.mesh_name:
-                slope = 0.0
-            else:
-                slope = .6
+        intercept = source[1] - slope * source[0]
+        line = lambda x: (x, slope * x + intercept )
 
-            intercept = source[1] - slope * source[0]
-            line = lambda x: (x, slope * x + intercept )
-
-            for pt in x_range:
-                try:
-                    add_point( plot_file, pt, data( line(pt) ) )
-                    add_point( line_file, pt, line(pt)[1] )
-                except:
-                    pass
+        for pt in x_range:
+            try:
+                add_point( plot_file, pt, data( line(pt) ) )
+                add_point( line_file, pt, line(pt)[1] )
+            except:
+                pass
   
     else:        
-        loc_file = File( "data/" + container.mesh_name + "/" + add_desc( desc ) + ".pvd" )
+        loc_file = File( "../PriorCov/data/" + container.mesh_name + "/" + add_desc( desc ) + ".pvd" )
         loc_file << data
 
 def add_desc( str_list ):
@@ -289,7 +255,7 @@ def make_tit( desc ):
 
 def empty_file( *args ):
     for file_name in args:
-        open(file_name, 'w').close()
+        open(file_name, 'w+').close()
 
         
 def add_point( plot_file, *args ):
@@ -303,3 +269,55 @@ def add_point( plot_file, *args ):
     open( plot_file, "a").write(dat)
 
 
+# The declaration ... = lambda: None is only there
+# to create an empty object, since lambda fuctions
+# are objects in python is this is super clean IMO.
+
+dic = {}
+
+dic["square"] = lambda: get_mesh( "square" )
+dic["square"].kappa = 11.0
+dic["square"].x = 855
+dic["square"].y = 855
+dic["square"].source = np.array( [ 0.05    , 0.5   ] ) 
+
+
+
+dic["parallelogram"] = lambda: get_refined_mesh( "parallelogram", nor=3, tol=0.7, factor=0.8, greens=True, betas = True )
+dic["parallelogram"].kappa = 11.0
+dic["parallelogram"].x = 250
+dic["parallelogram"].y = 250
+dic["parallelogram"].s = 1.0
+dic["parallelogram"].transformation = np.array( [ [ 2.5 , 1.  ],
+                                                  [ 1.  , 2.5 ] ] )
+dic["parallelogram"].source = np.array( [ 0.025   , 0.025 ] ) 
+
+
+
+dic["antarctica"] = lambda: get_refined_mesh( "antarctica", nor=0 )
+dic["antarctica"].source        = np.array( [ 7e2     , 5e2   ] )
+dic["antarctica"].center_source = np.array( [ -1.5e3  , 600.0 ] ) 
+dic["antarctica"].delta = 1e-5
+dic["antarctica"].kappa = math.sqrt( dic["antarctica"].delta )
+dic["antarctica"].gamma = 1.
+
+
+
+dic["cube"] = lambda: None
+dic["cube"].kappa = 5.
+n = 72
+dic["cube"].x = n
+dic["cube"].y = n
+dic["cube"].z = n 
+dic["cube"].source    = np.array( [ 0.05  ,  0.5,  0.5] ) 
+dic["cube"].equations = np.array( [ [1    ,    1,    1],
+                                    [0.125, 0.25,  0.5], 
+                                    [0.75 ,    1,    1]
+                                    ] )
+dic["cube"].slope = 0.3
+dic["cube"].coefficients = np.array( [1, 0.5, dic["cube"].slope ] )
+dic["cube"].a, dic["cube"].b, dic["cube"].c = np.linalg.solve( dic["cube"].equations, dic["cube"].coefficients )
+dic["cube"].s  = 1.
+
+dic["dolfin"] = lambda: None
+dic["dolfin"].source = np.array( [ 0.45    , 0.65  ] ) 

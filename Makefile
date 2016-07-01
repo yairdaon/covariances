@@ -1,8 +1,10 @@
 run:
-	./square.py
-	./parallelogram.py
-	./antarctica.py
-	./cube.py
+	python square_beta.py
+	python parallelogram_beta.py
+	python square.py
+	python parallelogram.py
+	#python antarctica.py
+	#python cube_beta.py
 tmp:
 	rm -rvf tmp.o*
 	sbatch tmp

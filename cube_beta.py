@@ -1,34 +1,30 @@
 #!/usr/bin/python
-import scipy.integrate as spi
-import scipy as sp
 import numpy as np
-import math
-import sys
-import time
-import pdb
-import os
 
 from dolfin import *
 
 import container
 import helper
-import mixed3D
+import betas2D
+from helper import dic as dic
 
-mesh_obj = helper.refine_cube( 67, 219, 87,nor = 0 )
+mesh_obj = helper.get_refined_mesh( "cube", 
+                                    nor = 2, # nor: Number Of Refinements
+                                    tol = 0.2,
+                                    factor = 0.35,
+                                    betas = True )
 
 container = container.Container( "cube", 
                                  mesh_obj,
-                                 5. ) # == kappa == Killing rate
+                                 dic["cube"].kappa ) # == kappa == Killing rate
 
-beta_expr = mixed3D.Mixed( container )
+beta_expr = betas2D.Mix3D( container, "mix2" )
 
-x = lambda s: 0.0
-y = lambda s: s
-z = lambda s: 0.5
+xyz = lambda s: ( 0.0, 0.5, s )
 
-pt_list = np.linspace(0.0,1.0,101)
-file_name = "data/cube/beta.txt"
+pt_list = np.linspace(0.0,1.0,106)
+file_name = "../PriorCov/data/cube/beta.txt"
 helper.empty_file( file_name )    
 for s in pt_list:
-    beta = -beta_expr( x(s), y(s), z(s) )[0]
+    beta = -beta_expr( xyz(s) )[0]
     helper.add_point( file_name, s, beta )

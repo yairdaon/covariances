@@ -3,13 +3,15 @@ import numpy as np
 from scipy import special as sp
 
 import helper
+from helper import dic as dic
 
 #########################################################
 # Fundamental solution ##################################
 #########################################################
 def fundamental( container ):
 
-    x = helper.pts[container.mesh_name]
+    
+    x = dic[container.mesh_name].source
     
     V = container.V
     mesh_obj = container.mesh_obj
