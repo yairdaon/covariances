@@ -9,8 +9,9 @@ import regular
 from helper import dic as dic
 
 container = container.Container( "square",
-                                 dic["square"](), # get the mesh, lazily
-                                 dic["square"].kappa ) # == kappa == Killing rate
+                                 dic["square"](), 
+                                 dic["square"].alpha,
+                                 gamma = 1 )
 
 print "fundamental"
 start_time = time()

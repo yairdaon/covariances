@@ -5,11 +5,13 @@ from scipy import special as sp
 import helper
 from helper import dic as dic
 
+
 #########################################################
 # Fundamental solution ##################################
 #########################################################
 def fundamental( container ):
 
+    
     
     x = dic[container.mesh_name].source
     

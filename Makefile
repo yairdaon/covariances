@@ -1,10 +1,16 @@
+COMPILER= g++
+CFLAGS= -I. -lm
+DEPS = header.h cubature.h converged.h vwrapper.h aux.h
+OBJ = mytests.o helper.o hcubature.o 
+
 run:
 	python square_beta.py
 	python parallelogram_beta.py
+	python cube_beta.py	
 	python square.py
 	python parallelogram.py
-	#python antarctica.py
-	#python cube_beta.py
+	python antarctica.py
+
 tmp:
 	rm -rvf tmp.o*
 	sbatch tmp
@@ -26,12 +32,12 @@ full:
 	sbatch full
 
 clean:
-	rm -rvf *~ *.pyc cpp/*~
+	rm -rvf *~ *.pyc cpp/*~ *.o *.so
 	rm -rvf cov/C/build
 	rm -vf cov/C/*.so	
-	rm -vf *.so
 	rm -rvf build
 	rm -vf cov*.so
+
 
 build7:
 	python2.7 cov/C/setup.py build_ext --inplace
@@ -42,3 +48,17 @@ build6:
 	python2.7 cov/C/setup.py build_ext --inplace
 	mv build cov/C
 	mv *.so cov
+
+comp: mytests
+	./mytests
+
+%.o: %.cpp $(DEPS)
+	$(COMPILER) -c -o $@ $< $(CFLAGS)
+
+mytests:$(OBJ)
+	$(COMPILER) -o $@ $^ $(CFLAGS)
+
+
+hcubature.so:
+	g++ -c -Wall -Werror -fpic hcubature.c 
+	g++ -shared -o libhcubature.so hcubature.o

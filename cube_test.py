@@ -5,7 +5,9 @@ import numpy as np
 from dolfin import *
 
 import container
-import mixed3D
+import betas
+import helper
+from helper import dic as dic
 
 def mix_enum( x0,x1,x2, kappa, n, reg ):
     ra = np.sqrt( x0*x0 + x1*x1 + x2*x2 ) + reg
@@ -19,24 +21,22 @@ def mix_denom( x0,x1,x2, kappa, n, reg ):
     tmp =   np.power( kappara, -0.5 ) * sp.special.kv( 0.5, kappara ) * np.exp( -kappara )
     return 2.0 * np.sum(tmp) / n / n / n
 
-reg = 1e-13
-n = 13 * 17 * 19
+reg = 1e-12
+n =  17 * 19
 x0 = np.linspace(   0, 1.0, n, endpoint = False )   
 x1 = np.linspace( -.5,  .5, n, endpoint = False )
 x2 = np.linspace( -.5,  .5, n, endpoint = False )
 
 X0, X1, X2 = np.meshgrid( x0, x1, x2 )
-kappa = 1.
-                  
-mesh_obj = helper.get_mesh( )
+alpha = 1.
 
 container = container.Container( "cube",
-                                 mesh_obj,
-                                 kappa ) # == kappa == Killing rate
-
+                                 dic["cube"](),
+                                 alpha )
+kappa = container.kappa
                                  
 
-fe_mix_beta  = mixed3D.Mixed( container, reg = reg )
+fe_mix_beta  = betas.BetaCubeAdaptive( container )
 fe_mix_beta  = fe_mix_beta(0.0,0.5,0.5)
 
 nx_mix_enum  = mix_enum (X0, X1, X2, kappa, n, reg )

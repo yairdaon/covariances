@@ -5,7 +5,7 @@ import math
 
 from dolfin import *
 
-import betas2D
+import betas
 
 class Container():
     '''
@@ -17,7 +17,7 @@ class Container():
     def __init__( self,
                   mesh_name,
                   mesh_obj,
-                  kappa,
+                  alpha,
                   gamma = 1.0,
                   num_samples = 0,
                   sqrt_M = None ):
@@ -52,8 +52,7 @@ class Container():
         self.v = TestFunction( self.V )
 
         # Parameters we use.
-        self.kappa  = kappa
-        self.kappa2 = kappa**2
+        self.alpha  = alpha
         self.gamma  = gamma
 
         # Dimensionality of the finite element space V
@@ -88,20 +87,30 @@ class Container():
         Then we modify these parameters such that
         
         '''
-        # Gamma premultiplies the operator
-        # -\Delta + kappa^2
-        gamma = self.gamma
+        
+        self.kappa = math.sqrt( self.alpha / self.gamma )
         
         # We factor out gamma, so we scale kappa
         # accordingly. Later we compensate
-        kappa2 = self.kappa2 / gamma
+       
         
         # Here we compensate - we now have covariance
         # [ gamma * (-Delta + kappa^2 / gamma ) ]^2
-        self.sig2 = gamma**2 * (4.0*math.pi)**(-self.dim/2.) * kappa2**(-self.nu)
+        self.sig2 = ( 
+            math.gamma( self.nu )      / 
+            math.gamma( 2 )            /
+            (4*math.pi)**(self.dim/2.) /
+            self.alpha**( self.nu )    /
+            self.gamma**( self.dim/2.)
+            )
+        
         self.sig  = math.sqrt( self.sig2 )
         self.factor = self.sig2 * 2**(1-self.nu) / math.gamma( self.nu )
         self.ran = ( 0.0, 1.3 * self.sig2 )
+        
+        u = Function( self.V )
+        u.vector().set_local( np.ones( u.vector().array().shape ) )
+        self.volume = assemble( u*dx )
        
     @property
     def sqrt_M( self ):
@@ -153,10 +162,10 @@ class Container():
             
             # Create local aliases for ease of
             # notation.
+            alpha = self.alpha
             gamma = self.gamma
-            kappa2 = self.kappa2
             kappa = self.kappa
-                       
+            
             u = self.u
             v = self.v
             normal = self.normal
@@ -176,34 +185,28 @@ class Container():
                     return on_boundary
                 f = Constant( 0.0 )
                 bc = DirichletBC(self.V, f, boundary)
-                a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx 
+                a = gamma*inner(grad(u), grad(v))*dx + alpha*u*v*dx 
                 A, _ = assemble_system ( a, f*v*dx, bc )
             
             # Homogeneous Neumann    
             elif "neumann" in BC:
-                a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx
+                a = gamma*inner(grad(u), grad(v))*dx + alpha*u*v*dx
                 A = assemble( a )
            
-            # Homogeneous Robin using "variant I". Only available in 2D.
-            elif "improper" in BC:
+            elif "ours" in BC:
                 if self.dim == 2:
-                    self.imp_beta = betas2D.Beta( self, "imp" )  
-                    a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx + Max( inner( self.imp_beta, normal ), Constant( 0.0 ) )*u*v*ds
-                    A = assemble( a )
+                    self.beta = betas.Beta2DAdaptive( self, tol = 1e-8 )
                 elif self.dim == 3:
-                    raise ValueError( "Improper Robin Boundary not supported in 3D. Go home." )
-            # Homogeneous Robin using "variant II". Available in both 2D and 3D.    
-            elif "mixed" in BC:
-                if self.dim == 2:
-                    self.mix_beta = betas2D.Beta( self, "mix" )
-                elif self.dim == 3:
-                    self.mix_beta = betas2D.Mix3D( self, "mix2" )
-                a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx + Max( inner( self.mix_beta, normal ), Constant( 0.0 ) )*u*v*ds
+                    self.beta = betas.BetaCubeAdaptive( self, tol = 1e-8 )
+                a = (gamma*inner(grad(u), grad(v))*dx +
+                     alpha*u*v*dx + 
+                     gamma*Max( inner( self.beta, normal ), Constant( 0.0 ) )*u*v*ds
+                     )
                 A = assemble( a )
                 
             # The homogeneous Robin BC suggested by Roininen et al.
-            elif "naive" in BC:
-                a = gamma*inner(grad(u), grad(v))*dx + kappa2*u*v*dx +  1./1.42*kappa*u*v*ds
+            elif "roininen" in BC:
+                a = gamma*inner(grad(u), grad(v))*dx + alpha*u*v*dx + kappa/1.42*u*v*ds
                 A = assemble( a )
                 
             else:

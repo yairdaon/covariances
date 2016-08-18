@@ -7,7 +7,7 @@ namespace dolfin {
   class Fundamental : public Expression
   {
   public:
-    Fundamental() : Expression(), y(2), kappa(0), factor(0) { }
+    Fundamental() : Expression(), z(2), kappa(0), factor(0) { }
     
     void eval(Array<double>& values, const Array<double>& x) const
     {

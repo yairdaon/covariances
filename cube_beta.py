@@ -1,24 +1,23 @@
 #!/usr/bin/python
 import numpy as np
+import math
 
 from dolfin import *
 
 import container
 import helper
-import betas2D
+import betas
 from helper import dic as dic
 
-mesh_obj = helper.get_refined_mesh( "cube", 
-                                    nor = 2, # nor: Number Of Refinements
-                                    tol = 0.2,
-                                    factor = 0.35,
-                                    betas = True )
+print
+print "Cube beta"            
 
-container = container.Container( "cube", 
-                                 mesh_obj,
-                                 dic["cube"].kappa ) # == kappa == Killing rate
-
-beta_expr = betas2D.Mix3D( container, "mix2" )
+container = container.Container( "cube",
+                                 dic["cube"](), # get the mesh, lazily
+                                 dic["cube"].alpha,
+                                 gamma = 1 )
+    
+beta = betas.BetaCubeAdaptive( container )
 
 xyz = lambda s: ( 0.0, 0.5, s )
 
@@ -26,5 +25,4 @@ pt_list = np.linspace(0.0,1.0,106)
 file_name = "../PriorCov/data/cube/beta.txt"
 helper.empty_file( file_name )    
 for s in pt_list:
-    beta = -beta_expr( xyz(s) )[0]
-    helper.add_point( file_name, s, beta )
+    helper.add_point( file_name, s, -beta( xyz(s) )[0] )

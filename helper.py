@@ -1,5 +1,6 @@
 import numpy as np
 import math
+from matplotlib import pyplot as plt
 
 from dolfin import *
 
@@ -69,12 +70,12 @@ def get_mesh( mesh_name ):
     
     elif "parallelogram" in mesh_name:
         
-        par = dic["parallelogram"]
-        mesh_obj = UnitSquareMesh( par.x, par.y )
+        paral = dic["parallelogram"]
+        mesh_obj = UnitSquareMesh( paral.x, paral.y )
 
         # The matrix that sends the unit square
         # to the parallelogram.
-        A = par.transformation
+        A = paral.transformation
                 
         # Apply matrix A to all points in xy.
         mesh_obj.coordinates()[:] = np.einsum( "ij, kj -> ki", A, mesh_obj.coordinates() )
@@ -194,14 +195,10 @@ def get_refined_mesh( mesh_name,
         
     return mesh_obj
 
-
     
 def save_plots( data, 
                 desc,
-                container,
-                mode = "color",
-                ran = [None, None],
-                scalarbar = False ):
+                container ):
     '''
     a routine to save plots and data for plots, based
     on the description variable desc.
@@ -219,9 +216,9 @@ def save_plots( data,
 
         x_range = np.hstack( ( np.arange( -0.1 , 0.05, 0.001 ),
                                np.arange(  0.05, 0.5 , 0.01  ) ) )
-        y = [] 
-        x = []
-                
+        y_data = [] 
+        x_real = []
+
         if "square" in container.mesh_name:
             slope = 0.0
         else:
@@ -232,11 +229,20 @@ def save_plots( data,
 
         for pt in x_range:
             try:
-                add_point( plot_file, pt, data( line(pt) ) )
+                y = data( line(pt) )
+                add_point( plot_file, pt, y )
                 add_point( line_file, pt, line(pt)[1] )
+                y_data.append( y  )
+                x_real.append( pt )
             except:
                 pass
-  
+
+        plt.plot( x_real, y_data )
+        plt.title( container.mesh_name + make_tit( desc ) )
+        #plt.ylim( container.ran )
+        plt.savefig( "data/" + container.mesh_name + "/" + add_desc( desc ) )
+        plt.close()
+ 
     else:        
         loc_file = File( "../PriorCov/data/" + container.mesh_name + "/" + add_desc( desc ) + ".pvd" )
         loc_file << data
@@ -276,20 +282,21 @@ def add_point( plot_file, *args ):
 dic = {}
 
 dic["square"] = lambda: get_mesh( "square" )
-dic["square"].kappa = 11.0
-dic["square"].x = 855
-dic["square"].y = 855
+dic["square"].alpha = 121.0
+dic["square"].x = 256
+dic["square"].y = 256
 dic["square"].source = np.array( [ 0.05    , 0.5   ] ) 
 
 
 
-dic["parallelogram"] = lambda: get_refined_mesh( "parallelogram", nor=3, tol=0.7, factor=0.8, greens=True, betas = True )
-dic["parallelogram"].kappa = 11.0
-dic["parallelogram"].x = 250
-dic["parallelogram"].y = 250
+dic["parallelogram"] = lambda: get_refined_mesh( "parallelogram", nor=1, tol=0.7, factor=0.7, greens=True, betas=True )
+dic["parallelogram"].alpha = 121.
+dic["parallelogram"].x = 150
+dic["parallelogram"].y = 150
 dic["parallelogram"].s = 1.0
-dic["parallelogram"].transformation = np.array( [ [ 2.5 , 1.  ],
-                                                  [ 1.  , 2.5 ] ] )
+theta = math.pi/8
+dic["parallelogram"].transformation = np.array( [ [ math.cos(math.pi/4-theta) , math.cos(math.pi/4+theta)  ],
+                                                  [ math.sin(math.pi/4-theta) , math.sin(math.pi/4+theta)  ] ] )
 dic["parallelogram"].source = np.array( [ 0.025   , 0.025 ] ) 
 
 
@@ -297,14 +304,13 @@ dic["parallelogram"].source = np.array( [ 0.025   , 0.025 ] )
 dic["antarctica"] = lambda: get_refined_mesh( "antarctica", nor=0 )
 dic["antarctica"].source        = np.array( [ 7e2     , 5e2   ] )
 dic["antarctica"].center_source = np.array( [ -1.5e3  , 600.0 ] ) 
-dic["antarctica"].delta = 1e-5
-dic["antarctica"].kappa = math.sqrt( dic["antarctica"].delta )
+dic["antarctica"].alpha = 1e-5
 dic["antarctica"].gamma = 1.
 
 
 
-dic["cube"] = lambda: None
-dic["cube"].kappa = 5.
+dic["cube"] = lambda: get_refined_mesh( "cube", nor=0 )
+dic["cube"].alpha = 25.
 n = 72
 dic["cube"].x = n
 dic["cube"].y = n
