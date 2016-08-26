@@ -6,6 +6,7 @@ import math
 from dolfin import *
 
 import betas
+import radial
 
 class Container():
     '''
@@ -20,7 +21,8 @@ class Container():
                   alpha,
                   gamma = 1.0,
                   num_samples = 0,
-                  sqrt_M = None ):
+                  sqrt_M = None,
+                  quad = "" ):
 
         # The name of the mesh.
         if "antarctica" in mesh_name:
@@ -78,6 +80,7 @@ class Container():
         # Calculate the required constants. See below.
         self.set_constants()
 
+        self.quad = quad
     
     def set_constants( self ):
         '''
@@ -107,11 +110,7 @@ class Container():
         self.sig  = math.sqrt( self.sig2 )
         self.factor = self.sig2 * 2**(1-self.nu) / math.gamma( self.nu )
         self.ran = ( 0.0, 1.3 * self.sig2 )
-        
-        u = Function( self.V )
-        u.vector().set_local( np.ones( u.vector().array().shape ) )
-        self.volume = assemble( u*dx )
-       
+               
     @property
     def sqrt_M( self ):
         if self._sqrt_M == None:
@@ -194,10 +193,22 @@ class Container():
                 A = assemble( a )
            
             elif "ours" in BC:
+                        
                 if self.dim == 2:
-                    self.beta = betas.Beta2DAdaptive( self, tol = 1e-8 )
-                elif self.dim == 3:
-                    self.beta = betas.BetaCubeAdaptive( self, tol = 1e-8 )
+                    if "radial" in self.quad:
+                        self.beta = betas.Beta2DRadial( self ) 
+                    elif "adaptive" in self.quad:
+                        self.beta = betas.Beta2DAdaptive( self, tol = 1e-8 )
+                    else:
+                        self.beta = betas.Beta2D( self )
+                if self.dim == 3:
+                    if "radial" in self.quad:
+                        self.beta = betas.Beta3DRadial( self )
+                    elif "adaptive" in self.quad:
+                        self.beta = betas.BetaCubeAdaptive( self, tol = 1e-8 )
+                    else:
+                        self.beta = betas.Beta3D( self )
+
                 a = (gamma*inner(grad(u), grad(v))*dx +
                      alpha*u*v*dx + 
                      gamma*Max( inner( self.beta, normal ), Constant( 0.0 ) )*u*v*ds

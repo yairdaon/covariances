@@ -4,7 +4,7 @@ DEPS = header.h cubature.h converged.h vwrapper.h aux.h
 OBJ = mytests.o helper.o hcubature.o 
 
 run:
-	python square_beta.py
+	python boundary.py
 	python parallelogram_beta.py
 	python cube_beta.py	
 	python square.py

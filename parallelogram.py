@@ -14,7 +14,8 @@ print "Parallelogram"
 container = container.Container( "parallelogram",
                                  dic["parallelogram"](), # get the mesh
                                  dic["parallelogram"].alpha,
-                                 gamma = 1 )
+                                 gamma = 1,
+                                 radial = False )
 
 
 print "roininen" 

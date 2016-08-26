@@ -7,6 +7,7 @@ import instant
 
 import helper
 import container
+import radial
 
 class Beta2DAdaptive(Expression):
     '''
@@ -182,7 +183,7 @@ class Beta2D(Expression):
     ensure the result is bigger than zero (FEniCS
     takes care of tha too).
     '''
-    def __init__( self, container, version ):
+    def __init__( self, container ):
         
         # The container variable holds all required data,
         # parameters etc. See the documentation in module
@@ -191,9 +192,9 @@ class Beta2D(Expression):
                 
         # Create the expressions for the integrals of the 
         # enumrator(s) and denominator.
-        self.enum0 = IntegratedExpression( container, version + "_enum0" )
-        self.enum1 = IntegratedExpression( container, version + "_enum1" )
-        self.denom = IntegratedExpression( container, version + "_denom" )
+        self.enum0 = IntegratedExpression( container, "enum0_2d" )
+        self.enum1 = IntegratedExpression( container, "enum1_2d" )
+        self.denom = IntegratedExpression( container, "denom_2d" )
 
         # Create a dictionary that will hold all calculated
         # values, so we don't have to redo calculations.
@@ -241,10 +242,10 @@ class Beta3D(Expression):
                 
         # Create the expressions for the integrals of the 
         # enumrator(s) and denominator.
-        self.enum0 = IntegratedExpression( container, "mix_enum0" )
-        self.enum1 = IntegratedExpression( container, "mix_enum1" )
-        self.enum2 = IntegratedExpression( container, "mix_enum2" )
-        self.denom = IntegratedExpression( container, "mix_denom" )
+        self.enum0 = IntegratedExpression( container, "enum0_3d" )
+        self.enum1 = IntegratedExpression( container, "enum1_3d" )
+        self.enum2 = IntegratedExpression( container, "enum2_3d" )
+        self.denom = IntegratedExpression( container, "denom_3d" )
 
         # Create a dictionary that will hold all calculated
         # values, so we don't have to redo calculations.
@@ -302,10 +303,10 @@ class IntegratedExpression(Expression):
         # Close file!!!
         loc_file.close()
         
-        xp = Expression( code, degree = 3 ) 
+        xp = Expression( code, degree = 4 ) 
         xp.kappa  = container.kappa 
         xp.factor = container.factor
-        self.expression = xp
+        self.xp = xp
 
         # Create a dictionary that will hold all calculated
         # values, so we don't have to redo calculations.
@@ -332,3 +333,106 @@ class IntegratedExpression(Expression):
 
             # Keep track of what we calculated, so we don't have to do it again.
             self.dic[ y.tostring() ] = value
+
+class Beta2DRadial(Expression):
+    
+    def __init__( self, container ):
+        
+        #self._degree = 2
+        self._dim = container.dim
+        
+        # The container variable holds all required data,
+        # parameters etc. See the documentation in module
+        # container.py
+        self.container = container
+                
+        self.G1 = radial.Radial( container, 1 )
+        self.G2 = radial.Radial( container, 2 )
+        
+        # Create a dictionary that will hold all calculated
+        # values, so we don't have to redo calculations.
+        self.dic = {}
+         
+    def eval( self, value, y ):
+        
+        # Make the numpy buffer hashable
+        #y.flags.writeable = False
+        
+        # If we already did the calculation, return the value...
+        if self.dic.has_key( y.tostring() ):
+            value = self.dic[ y.tostring() ]
+        
+        # Otherwise, compute it from scratch:
+        else:
+            self.G1.y = y
+            self.G2.y = y
+            G1 = interpolate( self.G1, self.container.V )
+            G2 = interpolate( self.G2, self.container.V )
+            mesh_obj = self.container.mesh_obj
+
+            denom = 2 * assemble( G1 * G2     * dx(mesh_obj) )
+            for i in range( self._dim ):
+                enum  = assemble( (
+                        grad(G2)[i]*G1 +
+                        grad(G1)[i]*G2 
+                        ) * dx(mesh_obj) )
+                value[i]  = enum / denom
+            
+            # Keep track of what we calculated, so we don't have to do it again.
+            self.dic[y.tostring()] = value
+
+
+    def value_shape(self):
+        return (2,)
+
+
+class Beta3DRadial(Expression):
+    
+    def __init__( self, container ):
+        
+        self._degree = 2
+        self._dim = container.dim
+        
+        # The container variable holds all required data,
+        # parameters etc. See the documentation in module
+        # container.py
+        self.container = container
+                
+        self.G1 = radial.Radial( container, 1 )
+        self.G2 = radial.Radial( container, 2 )
+        
+        # Create a dictionary that will hold all calculated
+        # values, so we don't have to redo calculations.
+        self.dic = {}
+         
+    def eval( self, value, y ):
+        
+        # Make the numpy buffer hashable
+        #y.flags.writeable = False
+        
+        # If we already did the calculation, return the value...
+        if self.dic.has_key( y.tostring() ):
+            value = self.dic[ y.tostring() ]
+        
+        # Otherwise, compute it from scratch:
+        else:
+            self.G1.y = y
+            self.G2.y = y
+            G1 = interpolate( self.G1, self.container.V )
+            G2 = interpolate( self.G2, self.container.V )
+            mesh_obj = self.container.mesh_obj
+
+            denom = 2 * assemble( G1 * G2     * dx(mesh_obj) )
+            for i in range( self._dim ):
+                enum  = assemble( (
+                        grad(G2)[i]*G1 +
+                        grad(G1)[i]*G2 
+                        ) * dx(mesh_obj) )
+                value[i]  = enum / denom
+            
+            # Keep track of what we calculated, so we don't have to do it again.
+            self.dic[y.tostring()] = value
+
+
+    def value_shape(self):
+        return (3,)

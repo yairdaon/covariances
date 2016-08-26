@@ -18,6 +18,7 @@ container = container.Container( "cube",
                                  gamma = 1 )
     
 beta = betas.BetaCubeAdaptive( container )
+# beta = betas.Beta3DRadial( container )
 
 xyz = lambda s: ( 0.0, 0.5, s )
 

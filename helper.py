@@ -47,7 +47,7 @@ def apply_sources ( container, b, scaling = no_scaling ):
                  scaling( source )
                  ).apply( b )
     
-def get_mesh( mesh_name ):
+def get_mesh( mesh_name, dims=None ):
     '''
     Generate a mesh.
     '''
@@ -66,13 +66,18 @@ def get_mesh( mesh_name ):
         empty_file( file_name )
         for pt in pts:
             add_point( file_name, pt[0], pt[1] )
-        return UnitSquareMesh( dic["square"].x, dic["square"].y )
+        if dims == None:
+            return UnitSquareMesh( dic["square"].x, dic["square"].y )
+        else:
+            return UnitSquareMesh( dims, dims )
     
     elif "parallelogram" in mesh_name:
         
         paral = dic["parallelogram"]
-        mesh_obj = UnitSquareMesh( paral.x, paral.y )
-
+        if dims == None:
+            mesh_obj = UnitSquareMesh( paral.x, paral.y )
+        else:
+            mesh_obj = UnitSquareMesh( dims, dims )
         # The matrix that sends the unit square
         # to the parallelogram.
         A = paral.transformation
@@ -95,8 +100,11 @@ def get_mesh( mesh_name ):
         return Mesh( "meshes/antarctica3.xml" )
     
     elif "cube" in mesh_name:
-        return UnitCubeMesh( dic["cube"].x, dic["cube"].y, dic["cube"].z )
-        
+        if dims == None:
+            return UnitCubeMesh( dic["cube"].x, dic["cube"].y, dic["cube"].z )
+        else:
+            return UnitCubeMesh( dims, dims, dims )
+            
 def get_refined_mesh( mesh_name, 
                       nor = 3, 
                       tol = 0.1,
@@ -298,7 +306,6 @@ theta = math.pi/8
 dic["parallelogram"].transformation = np.array( [ [ math.cos(math.pi/4-theta) , math.cos(math.pi/4+theta)  ],
                                                   [ math.sin(math.pi/4-theta) , math.sin(math.pi/4+theta)  ] ] )
 dic["parallelogram"].source = np.array( [ 0.025   , 0.025 ] ) 
-
 
 
 dic["antarctica"] = lambda: get_refined_mesh( "antarctica", nor=0 )

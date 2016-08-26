@@ -16,7 +16,8 @@ print "Green's functions and variances"
 container = container.Container( "antarctica",
                                  dic["antarctica"](), # get the mesh, lazily
                                  dic["antarctica"].alpha, # == Killing rate
-                                 gamma = dic["antarctica"].gamma ) # prefactor of laplacian
+                                 gamma = dic["antarctica"].gamma,
+                                 radial = False ) 
 
 print "roininen" 
 start_time = time()
