@@ -200,15 +200,15 @@ int beta2D( unsigned ndim, const double *x, void *fdata, unsigned fdim, double *
   
   A2D( u, vertices );
   
-  double ra  = sqrt( (u[0]-y[0])*(u[0]-y[0])  +  (u[1]-y[1])*(u[1]-y[1])  ) + 1E-9;
+  double ra  = sqrt( (u[0]-y[0])*(u[0]-y[0])  +  (u[1]-y[1])*(u[1]-y[1]) ) + 1E-9;
   
   double phi0 = cyl_bessel_k( 0.0, kappa*ra );
   double phi1 = cyl_bessel_k( 1.0, kappa*ra );
   double tot  = kappa * (phi0*phi0 + phi1*phi1);
-    
-  fval[0] = 0.5 * det * tot * (y[0] - u[0]);
-  fval[1] = 0.5 * det * tot * (y[1] - u[1]);
-  fval[2] =       det * ra * phi0 * phi1; // no 0.5 cuz it cancelled with 2 factor
+  
+  fval[0] = 0.5 * det * tot * (y[0] - u[0]); // Enumerator[0]
+  fval[1] = 0.5 * det * tot * (y[1] - u[1]); // Enumerator[1]
+  fval[2] =       det * ra  *  phi0 * phi1 ; // Denomintaor
 
   return 0; 
 

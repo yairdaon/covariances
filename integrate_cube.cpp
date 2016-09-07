@@ -3,11 +3,9 @@
 #include <stdio.h>
 #include <iostream>
 
-#include <boost/math/special_functions/bessel.hpp>
 #include "cubature.h"
 #include "header.h"
 
-using boost::math::cyl_bessel_k;
 using namespace std;
 
 
@@ -29,7 +27,7 @@ void integrateVectorOnCube( int n,
   memcpy( fdata + 1, y, 3*sizeof(double) );
   
   hcubature( 4,                //unsigned fdim
-	     beta3D,           //integrand f - need to replace this line, ow won't compile!!
+	     betaCube,         //integrand f - need to replace this line, ow won't compile!!
 	     fdata,            //void *fdata
 	     3,                //unsigned dim
 	     xmin,             //const double *xmin

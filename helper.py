@@ -47,7 +47,7 @@ def apply_sources ( container, b, scaling = no_scaling ):
                  scaling( source )
                  ).apply( b )
     
-def get_mesh( mesh_name, dims=None ):
+def get_mesh( mesh_name, dims ):
     '''
     Generate a mesh.
     '''
@@ -66,18 +66,13 @@ def get_mesh( mesh_name, dims=None ):
         empty_file( file_name )
         for pt in pts:
             add_point( file_name, pt[0], pt[1] )
-        if dims == None:
-            return UnitSquareMesh( dic["square"].x, dic["square"].y )
-        else:
-            return UnitSquareMesh( dims, dims )
+        return UnitSquareMesh( dims, dims )
     
     elif "parallelogram" in mesh_name:
         
         paral = dic["parallelogram"]
-        if dims == None:
-            mesh_obj = UnitSquareMesh( paral.x, paral.y )
-        else:
-            mesh_obj = UnitSquareMesh( dims, dims )
+        mesh_obj = UnitSquareMesh( dims, dims )
+        
         # The matrix that sends the unit square
         # to the parallelogram.
         A = paral.transformation
@@ -100,18 +95,14 @@ def get_mesh( mesh_name, dims=None ):
         return Mesh( "meshes/antarctica3.xml" )
     
     elif "cube" in mesh_name:
-        if dims == None:
-            return UnitCubeMesh( dic["cube"].x, dic["cube"].y, dic["cube"].z )
-        else:
-            return UnitCubeMesh( dims, dims, dims )
+        return UnitCubeMesh( dims, dims, dims )
             
 def get_refined_mesh( mesh_name, 
-                      nor = 3, 
-                      tol = 0.1,
-                      factor = 0.5,
-                      greens = False,
-                      variance = False,
-                      betas = False ):
+                      dims,
+                      nor=2, 
+                      tol=0.1,
+                      factor=0.5,
+                      greens=False ):
     '''
     Generate and refine a mesh, usually around a source.
     
@@ -125,11 +116,11 @@ def get_refined_mesh( mesh_name,
     '''
 
     # Start with an unmodified mesh.
-    mesh_obj = get_mesh( mesh_name )
+    mesh_obj = get_mesh( mesh_name, dims )
     
     if "cube" in mesh_name:
         
-        cub = dic["cube"]
+        # cub = dic["cube"]
         # if False:
         #     x = mesh_obj.coordinates()[:,0]
         #     y = mesh_obj.coordinates()[:,1]
@@ -139,18 +130,17 @@ def get_refined_mesh( mesh_name,
         #     mesh_obj.coordinates()[:] = np.transpose( np.array( [ x, y, z ] ) )
         
         def inside( x, p ):
-            face   = variance and near(x[0], 0.0, tol ) 
             cross  = ( greens and 
                        near(x[1], 0.5 , tol ) and 
+                       near(x[2], 0.5 , tol ) and 
                        near(x[0], p[0], tol ) and 
                        near(x[1], p[1], tol ) and 
                        near(x[2], p[2], tol )
                        )
-            line   = ( betas and 
-                       near(x[0], 0.0, tol ) and 
+            line   = ( near(x[0], 0.0, tol ) and 
                        near(x[1], 0.5, tol ) 
                        )
-            return face or cross or line
+            return cross or line
        
     elif "parallelogram" in mesh_name:
 
@@ -161,10 +151,8 @@ def get_refined_mesh( mesh_name,
                          near(x[0], p[0], tol ) and 
                          near(x[1], p[1], tol ) 
                          )
-            boundary = ( betas and 
-                         near( x[1] , x[0]*A[1,1]/A[0,1], tol ) 
-                         )
-            
+            boundary = near( x[1] , x[0]*A[1,1]/A[0,1], tol ) 
+                                   
             return cross or boundary
                 
         # Make a denser mesh towards r=a
@@ -289,18 +277,23 @@ def add_point( plot_file, *args ):
 
 dic = {}
 
-dic["square"] = lambda: get_mesh( "square" )
+dic["square"] = lambda: get_mesh( "square", 256 )
+# dic["square"].x = 256
+# dic["square"].y = 256
 dic["square"].alpha = 121.0
-dic["square"].x = 256
-dic["square"].y = 256
 dic["square"].source = np.array( [ 0.05    , 0.5   ] ) 
 
 
 
-dic["parallelogram"] = lambda: get_refined_mesh( "parallelogram", nor=1, tol=0.7, factor=0.7, greens=True, betas=True )
+dic["parallelogram"] = lambda: get_refined_mesh( "parallelogram",
+                                                 150,
+                                                 nor=1, 
+                                                 tol=0.7, 
+                                                 factor=0.7, 
+                                                 greens=True )
 dic["parallelogram"].alpha = 121.
-dic["parallelogram"].x = 150
-dic["parallelogram"].y = 150
+# dic["parallelogram"].x = 150
+# dic["parallelogram"].y = 150
 dic["parallelogram"].s = 1.0
 theta = math.pi/8
 dic["parallelogram"].transformation = np.array( [ [ math.cos(math.pi/4-theta) , math.cos(math.pi/4+theta)  ],
@@ -308,7 +301,9 @@ dic["parallelogram"].transformation = np.array( [ [ math.cos(math.pi/4-theta) , 
 dic["parallelogram"].source = np.array( [ 0.025   , 0.025 ] ) 
 
 
-dic["antarctica"] = lambda: get_refined_mesh( "antarctica", nor=0 )
+dic["antarctica"] = lambda: get_refined_mesh( "antarctica",
+                                              0,
+                                              nor=0 )
 dic["antarctica"].source        = np.array( [ 7e2     , 5e2   ] )
 dic["antarctica"].center_source = np.array( [ -1.5e3  , 600.0 ] ) 
 dic["antarctica"].alpha = 1e-5
@@ -316,12 +311,18 @@ dic["antarctica"].gamma = 1.
 
 
 
-dic["cube"] = lambda: get_refined_mesh( "cube", nor=0 )
+
+dic["cube"] = lambda: get_refined_mesh( "cube", 
+                                        15,
+                                        nor = 0, 
+                                        tol = 0.2,
+                                        factor = 0.4,
+                                        greens = True )
 dic["cube"].alpha = 25.
-n = 72
-dic["cube"].x = n
-dic["cube"].y = n
-dic["cube"].z = n 
+# n = 72
+# dic["cube"].x = n
+# dic["cube"].y = n
+# dic["cube"].z = n 
 dic["cube"].source    = np.array( [ 0.05  ,  0.5,  0.5] ) 
 dic["cube"].equations = np.array( [ [1    ,    1,    1],
                                     [0.125, 0.25,  0.5], 

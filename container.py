@@ -22,7 +22,7 @@ class Container():
                   gamma = 1.0,
                   num_samples = 0,
                   sqrt_M = None,
-                  quad = "" ):
+                  quad = "std" ):
 
         # The name of the mesh.
         if "antarctica" in mesh_name:
@@ -92,7 +92,8 @@ class Container():
         '''
         
         self.kappa = math.sqrt( self.alpha / self.gamma )
-        
+        assert np.isreal( self.kappa )
+
         # We factor out gamma, so we scale kappa
         # accordingly. Later we compensate
        
@@ -193,30 +194,14 @@ class Container():
                 A = assemble( a )
            
             elif "ours" in BC:
-                        
-                if self.dim == 2:
-                    if "radial" in self.quad:
-                        self.beta = betas.Beta2DRadial( self ) 
-                    elif "adaptive" in self.quad:
-                        self.beta = betas.Beta2DAdaptive( self, tol = 1e-8 )
-                    else:
-                        self.beta = betas.Beta2D( self )
-                if self.dim == 3:
-                    if "radial" in self.quad:
-                        self.beta = betas.Beta3DRadial( self )
-                    elif "adaptive" in self.quad:
-                        self.beta = betas.BetaCubeAdaptive( self, tol = 1e-8 )
-                    else:
-                        self.beta = betas.Beta3D( self )
-
-                a = (gamma*inner(grad(u), grad(v))*dx +
-                     alpha*u*v*dx + 
+                self.chooseBeta()
+                a = (gamma*inner(grad(u), grad(v))*dx + alpha*u*v*dx + 
                      gamma*Max( inner( self.beta, normal ), Constant( 0.0 ) )*u*v*ds
                      )
                 A = assemble( a )
                 
             # The homogeneous Robin BC suggested by Roininen et al.
-            elif "roininen" in BC:
+            elif "roin" in BC:
                 a = gamma*inner(grad(u), grad(v))*dx + alpha*u*v*dx + kappa/1.42*u*v*ds
                 A = assemble( a )
                 
@@ -226,6 +211,38 @@ class Container():
             # Keep track of the forms / matrices we have just assembled.
             self._form[BC] = A
         return self._form[BC]
+
+    def chooseBeta(self):
+        '''
+        Choose the beta we use according the quadrature
+        method specified in self.quad variable and dimension
+        '''
+        if self.dim == 2:
+            if "radial" in self.quad:
+                self.beta = betas.Beta2DRadial( self ) 
+            elif "adaptive" in self.quad:
+                self.beta = betas.Beta2DAdaptive( self, tol = 1e-8 )
+            elif "std" in self.quad:
+                self.beta_xpr = betas.Beta2D( self )
+                DG = VectorFunctionSpace( self.mesh_obj, "DG", 0 )
+                self.beta = interpolate( self.beta_xpr, DG )
+            else:
+                raise ValueError( "You need to specify the integration method!")
+                
+        if self.dim == 3:
+            if "radial" in self.quad:
+                self.beta = betas.Beta3DRadial( self )
+            elif "adaptive" in self.quad:
+                if "cube" in self.mesh_name:
+                    self.beta = betas.BetaCubeAdaptive( self, tol = 1e-8 )
+                else:
+                    raise ValueError("Adaptive quad may only be used with the cube in 3D.")
+            elif "std" in self.quad:
+                self.beta_xpr = betas.Beta3D( self )
+                DG = VectorFunctionSpace( self.mesh_obj, "DG", 0 )
+                self.beta = interpolate( self.beta_xpr, DG )
+            else:
+                raise ValueError( "You need to specify the integration method!")
 
     def gs( self, BC ):
         '''

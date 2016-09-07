@@ -23,13 +23,13 @@ void integrateVector( int n,
     xmin[i] = 0;
     xmax[i] = 1;
   }
-    
+  
   double * fdata = new double[1 + 1 + n + m];
   
   fdata[0] = kappa;
   fdata[1] = detA( vertices, n );
-  memcpy( fdata + 2,     y,        n*sizeof(double) );
-  memcpy( fdata + 2 + n, vertices, m*sizeof(double) );
+  memcpy( fdata + 2,     y,        n * sizeof(double) );
+  memcpy( fdata + 2 + n, vertices, m * sizeof(double) );
   
   hcubature( fdim,             //unsigned fdim
 	     FUNCTION_NAME,    //integrand f - need to replace this line, ow won't compile!!

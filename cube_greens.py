@@ -1,6 +1,4 @@
 #!/usr/bin/python
-import time
-
 from dolfin import *
 
 import container
@@ -8,67 +6,62 @@ import helper
 import fundamental3D
 import variance
 import regular
-import parameters
 
+from helper import dic as dic
 print
 print "Cube"            
 
-mesh_obj = helper.get_refined_mesh( "cube", 
-                                    nor = 4, 
-                                    tol = 0.2,
-                                    factor = 1.0,
-                                    show = False,
-                                    greens = True )
 
-container = container.Container( "cube",
-                                 mesh_obj,
-                                 parameters.cube.kappa ) # == kappa == Killing rate
+cot = container.Container( "cube",
+                           dic["cube"](),
+                           dic["cube"].alpha,
+                           quad = "std" ) 
 
 print "fundamental"
-start_time = time.time()
-fundamental3D.fundamental( container )
-print "Run time: " + str( time.time() - start_time )
+start_time = time()
+fundamental3D.fundamental( cot )
+print "Run time: " + str( time() - start_time )
 print
 
-print "mixed"
-start_time = time.time()
-regular.ordinary(container, "mixed robin" )
-print "Run time: " + str( time.time() - start_time )
+print "ours"
+start_time = time()
+regular.ordinary( cot, "ours" )
+print "Run time: " + str( time() - start_time )
 print
 
-print "mixed robin variance"
-start_time = time.time()
-variance.variance( container, "mixed robin" )
-print "Run time: " + str( time.time() - start_time )
+print "ours variance"
+start_time = time()
+variance.variance( cot, "ours" )
+print "Run time: " + str( time() - start_time )
 print
 
 print "neumann"
-start_time = time.time()
-regular.ordinary(container, "neumann" )
-print "Run time: " + str( time.time() - start_time )
+start_time = time()
+regular.ordinary( cot, "neumann" )
+print "Run time: " + str( time() - start_time )
 print
 
 print "neumann variance"
-start_time = time.time()
-variance.variance( container, "neumann" )
-print "Run time: " + str( time.time() - start_time )
+start_time = time()
+variance.variance( cot, "neumann" )
+print "Run time: " + str( time() - start_time )
 print
 
 print "dirichlet"
-start_time = time.time()
-regular.ordinary(container, "dirichlet" )
-print "Run time: " + str( time.time() - start_time )
+start_time = time()
+regular.ordinary( cot, "dirichlet" )
+print "Run time: " + str( time() - start_time )
 print
 
-print "naive" 
-start_time = time.time()
-regular.ordinary(container, "naive robin" )
-print "Run time: " + str( time.time() - start_time )
+print "Roninen" 
+start_time = time()
+regular.ordinary( cot, "roininen" )
+print "Run time: " + str( time() - start_time )
 print
 
-print "naive robin variance"
-start_time = time.time()
-variance.variance( container, "naive robin" )
-print "Run time: " + str( time.time() - start_time )
+print "Roininen robin variance"
+start_time = time()
+variance.variance( cot, "roininen" )
+print "Run time: " + str( time() - start_time )
 print
 
