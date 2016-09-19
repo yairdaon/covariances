@@ -41,12 +41,16 @@ void integrateVector( int n,
 	     tol,              //double reqAbsError 
 	     tol,              //double reqRelError 
 	     ERROR_INDIVIDUAL, //error_norm norm
-	     val,              //double *val
+	     val,              //double *valx
 	     err );            //double *err
 	      
-  
+ 
   for (int i = 0; i < fdim ; i++ ) {
     result[i] = result[i] + val[i];
+    if isnan( val[i] ) {
+	printf( "NaN! Vertices = \n" );
+	printData( fdata, 2 );
+      }
   }
 
   delete[] fdata;

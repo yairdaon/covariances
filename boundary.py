@@ -1,8 +1,9 @@
 #!/usr/bin/python
 import numpy as np
 import math
+import time
 
-from dolfin import *
+import dolfin as dol
 
 import container
 import helper
@@ -23,55 +24,84 @@ def bdryBetas( mesh_name,
 
     cot = container.Container( mesh_name,
                                mesh_obj,
-                               25, #dic[mesh_name].alpha,
+                               dic[mesh_name].alpha,
                                quad = quad )
 
-    tmp = Function( cot.V )
-    L = Constant(1.0) * cot.v * dx
-    b = assemble( L )
-    loc_solver = cot.solvers( "ours" )
-    loc_solver( tmp.vector(), b ) 
-                
-    beta_dic = cot.beta_xpr.tupDic 
-    full_dic = cot.beta_xpr.fullDic
-
+    beta_obj = cot.chooseBeta()
+        
     beta_file = "../PriorCov/data/" + mesh_name + "/beta_" + quad + "_" + str(dims) + ".txt"
-    print beta_file
     helper.empty_file( beta_file )
+    print beta_file
     
-    h = 0.5/dims
 
-    for y in beta_dic:
-        inv = np.linalg.solve( A, np.array( y ) )
+    if "adaptive" in quad:
+        ran = np.linspace( 0, 1, num=77, endpoint=True )
+         
+        for s in ran:
+            v = np.zeros( cot.dim )
+            v[-1] = s
+            if cot.dim == 3:
+                v[1] = .5
+            y = np.dot( A , v )
+            beta = beta_obj( y )
+            helper.add_point( beta_file,
+                              s,
+                              np.dot( beta, normal ) )
+        return
+            
+    coo = mesh_obj.coordinates()
+    
+
+    if "parallelogram" in mesh_name:
+        h = 1e-5
+    elif "square" in mesh_name:
+        h = 1e-9
+    else:
+        h = 1./dims
+    total_time = 0
+    counter = 0
+
+    for i in range(coo.shape[0]):
+        
+        y = coo[i,:]
+        inv = np.linalg.solve( A, y )
         doit = ( abs(inv[0]) < h )
+
         if cot.dim == 3:
             doit = doit and abs(inv[1]-0.5) < h
         if doit:
-            x = full_dic[y]
-            print "Point = " + str(inv)
-            print "Beta  = " + str(beta_dic[y])
-            print
+            counter = counter + 1
+            start = time.time()
+            beta = beta_obj( y ) 
+            total_time = total_time + time.time() - start
+            # print "Point = " + str( y )
+            # print "Beta  = " + str(beta)
+            # print
+            
             helper.add_point( beta_file,
-                              inv[-1],
-                              np.dot( beta_dic[y], normal ) )
- 
-# A = dic["parallelogram"].transformation
-# nn = np.array( [ -A[1,1], A[0,1] ] ) / math.sqrt( A[0,1]**2 + A[1,1]**2 )
-# bdryBetas( "parallelogram", A, "std", nn, 55 )
-# bdryBetas( "parallelogram", A, "std", nn, 88 )
-# bdryBetas( "parallelogram", A, "std", nn, 99 )
+                              y[-1],
+                              np.dot( beta, normal ) )
+    print "Average time per eval = " + str(total_time/counter)
 
-# A = np.identity( 2 )
-# nn = np.array( [ -1.0, 0.0 ] )
-# bdryBetas( "square", A, "std", nn, 50  )
-# bdryBetas( "square", A, "std", nn, 150 )
-# bdryBetas( "square", A, "std", nn, 250 )
+ 
+A = dic["parallelogram"].transformation
+nn = np.array( [ -A[1,1], A[0,1] ] ) / math.sqrt( A[0,1]**2 + A[1,1]**2 )
+bdryBetas( "parallelogram", A, "adaptive", nn, 2 )
+bdryBetas( "parallelogram", A, "std", nn, 166 )
+bdryBetas( "parallelogram", A, "std", nn, 177 )
+bdryBetas( "parallelogram", A, "std", nn, 188 )
+
+A = np.identity( 2 )
+nn = np.array( [ -1.0, 0.0 ] )
+bdryBetas( "square", A, "adaptive", nn, 2 )
+bdryBetas( "square", A, "std", nn, 166 )
+bdryBetas( "square", A, "std", nn, 177 )
+bdryBetas( "square", A, "std", nn, 188 )
 
 A = np.identity( 3 )
 nn = np.array( [ -1.0, 0.0, 0.0 ] )
-bdryBetas( "cube", A, "std"     , nn, 2  )
-bdryBetas( "cube", A, "std"     , nn, 7  )
-bdryBetas( "cube", A, "std"     , nn, 17 )
-bdryBetas( "cube", A, "std"     , nn, 27 )
-bdryBetas( "cube", A, "std"     , nn, 37 )
+bdryBetas( "cube", A, "adaptive", nn, 2 )
+bdryBetas( "cube", A, "std", nn, 166 )
+bdryBetas( "cube", A, "std", nn, 177 )
+bdryBetas( "cube", A, "std", nn, 188 )
 

@@ -223,9 +223,7 @@ class Container():
             elif "adaptive" in self.quad:
                 self.beta = betas.Beta2DAdaptive( self, tol = 1e-8 )
             elif "std" in self.quad:
-                self.beta_xpr = betas.Beta2D( self )
-                DG = VectorFunctionSpace( self.mesh_obj, "DG", 0 )
-                self.beta = interpolate( self.beta_xpr, DG )
+                self.beta = betas.Beta2D( self )
             else:
                 raise ValueError( "You need to specify the integration method!")
                 
@@ -238,12 +236,12 @@ class Container():
                 else:
                     raise ValueError("Adaptive quad may only be used with the cube in 3D.")
             elif "std" in self.quad:
-                self.beta_xpr = betas.Beta3D( self )
-                DG = VectorFunctionSpace( self.mesh_obj, "DG", 0 )
-                self.beta = interpolate( self.beta_xpr, DG )
+                self.beta = betas.Beta3D( self )
             else:
                 raise ValueError( "You need to specify the integration method!")
-
+            
+        return self.beta
+            
     def gs( self, BC ):
         '''
         The function g used for normalizing the pointwise

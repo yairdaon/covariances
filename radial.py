@@ -2,109 +2,171 @@
 from dolfin import *
 import math
 import numpy as np
+from scipy.interpolate import interp1d as interp
 
-class Radial(Expression):
+def radial( container, h=None ):
     
-    def __init__( self, container, p ):
+    
+    # Create mesh and define function space
+    # Number of discretization points
+    
+    # At this distance, the correlation is
+    # approximately 10^-3
+    if "square" in container.mesh_name:
+        ran = 20.
+    elif "parallelogram" in container.mesh_name:
+        ran = 5.
+    elif  "antarctica" in container.mesh_name:
+        ran = 8e3
+    elif "cube" in container.mesh_name:
+        ran = 2.
 
-        self.container = container
+    # Given a range, we should be able to determine
+    # N from the mesh parameter
+    if h == None:
+        h = container.mesh_obj.hmin()
+    N = int( ran / h )
         
-        self._degree = 2
-        d = self.container.dim
-        kappa = container.kappa
-               
-        # Create mesh and define function space
-        # Number of discretization points
+    mesh_obj = IntervalMesh( N+1, 0, ran )
+    V = FunctionSpace( mesh_obj, "CG", 1 ) 
+    u = TrialFunction(V)
+    v = TestFunction(V)
+    f = Constant( 0.0 ) 
+
+    # The factors dont REALLY matter, since they cancel out
+    
+    d = container.dim
+    areaOfUnitSphere = 2 * math.pi**(d/2.0) / math.gamma(d/2.0)
+    if d == 2:
+        X = Expression( str(areaOfUnitSphere) + "* x[0]     ", degree=4) 
+    elif d == 3:
+        X = Expression( str(areaOfUnitSphere) + "* x[0]*x[0]", degree=4)
+    else:
+        raise ValueError( "Dimension has to be 2 or 3." )
+    
+    kappa = container.kappa
+    a = X * (kappa*kappa*u*v +  inner(grad(u), grad(v))) * dx 
+    m = X *              u*v                             * dx 
+    L = f *                v                             * dx
+
+    A, b = assemble_system ( a, L )
+    M = assemble( m )
+
+    # Get G1 ###########################
+
+    # Impose rhs delta function at origin
+    delta = PointSource ( V, Point ( 0.0 ), 1.0  ) 
+    delta.apply ( b )
+
+    # Compute solution
+    G1_func = Function(V)
+    solve ( A, G1_func.vector(), b )
+
+    # Get G2 via solving for G1 #######
+    G2_func = Function(V)
+    MG1_func = M*G1_func.vector()
+    solve ( A, G2_func.vector(), MG1_func )
         
-        # At this distance, the correlation is
-        # approximately 10^-3
-        ran = max( 10 / container.kappa, 5 )
-        if "antarctica" in container.mesh_name:
-            ran = 8e3
-        # Given a range, we should be able to determine
-        # N from the mesh parameter
-        N = ran / container.mesh_obj.hmin()
+    coo = np.ravel( mesh_obj.coordinates() ) 
+    G1 = []
+    G2 = []
+    for x in coo:
+        G1.append( G1_func(x) ) 
+        G2.append( G2_func(x) )
+
+    G1 = np.array( G1 )
+    G2 = np.array( G2 )
+    
+    dG1 = np.zeros( len(G1) )
+    dG2 = np.zeros( len(G2) )
+    
+    # Derivative via finite difference, basically
+    dG1[0:-1] = ( G1[1:] - G1[0:-1] ) / h  
+    dG2[0:-1] = ( G2[1:] - G2[0:-1] ) / h
+    
+    # import pdb
+    # pdb.set_trace()
+    G1  = interp( coo, G1,  kind = 'linear' )
+    G2  = interp( coo, G2,  kind = 'linear' )
+    dG1 = interp( coo, dG1, kind = 'zero'   )
+    dG2 = interp( coo, dG2, kind = 'zero'   )
         
-        mesh_obj = IntervalMesh(int(N) + 1, 0, int(ran) )
-        V = FunctionSpace(mesh_obj, "CG", 1) 
-        u = TrialFunction(V)
-        v = TestFunction(V)
-        f = Constant( 0.0 ) 
-
-        # The factors dont REALLY matter, since they cancel out
-        
-        areaOfUnitSphere = 2 * math.pi**(d/2.0) / math.gamma(d/2.0)
-        if d == 2:
-            X = Expression( str(areaOfUnitSphere) + "* x[0]     ", degree=4) 
-        else:
-            X = Expression( str(areaOfUnitSphere) + "* x[0]*x[0]", degree=4)
-            
-        a = X * (kappa*kappa*u*v +  inner(grad(u), grad(v))) * dx 
-        m = X *              u*v                             * dx 
-        L = f*v*dx
-
-        A, b = assemble_system ( a, L )
-        M = assemble( m )
-
-        # Get G1 ###########################
-
-        # Impose rhs delta function at origin
-        delta = PointSource ( V, Point ( 0.0 ), 1.0  ) 
-        delta.apply ( b )
-
-        # Compute solution
-        G1 = Function(V)
-        solve ( A, G1.vector(), b )
-
-        if p == 1:
-            self.radial = G1
-        else:    
-            
-            # Get G2 via solving for G1 #######
-            G2 = Function(V)
-            MG1 = M*G1.vector()
-            solve ( A, G2.vector(), MG1 )
-            self.radial = G2
-
-    def eval( self, value, x ):
-        value[0] = self.radial( np.linalg.norm( self.y - x ) )
+    return G1, dG1, G2, dG2
 
 if __name__ == "__main__":
 
+    from scipy.special import kv as kv
+    from scipy.special import kn as kn
+    from matplotlib import pyplot as plt
+
+    import helper
     import container
-    from helper import dic as dic
     
-    def err( xpr1, xpr2, space ):  
-        return errornorm( 
-            interpolate( xpr1, space ),
-            interpolate( xpr2, space )
-            ) #, norm_type = 'L1' )
+    x = np.linspace( 0.0, 0.1, num=500, endpoint=True )
   
-    cot = container.Container( "square",
-                               dic["square"](), 
-                               dic["square"].alpha,
-                               gamma = 1 )
-
-    kappa = cot.kappa
-    factor = cot.factor
-    sig2 = cot.sig2
-
-    # Compile Phi1
-    phi1_file = open( "cpp/fundamental2d1.cpp" , 'r' )  
-    phi1_code = phi1_file.read()
-    phi1_file.close()
-    phi1 = Expression( phi1_code, kappa=kappa, degree = 2)
+    d = 2
+    if d == 2:
+        cot = container.Container( "square",
+                                   helper.get_mesh( "square", 100 ), 
+                                   25,
+                                   gamma = 1 )
+        kappa = cot.kappa
+        factor = cot.factor
+        Phi1x  =  1. / 2 / math.pi * kn( 0, kappa*x )
+        dPhi1x = -1. / 2 / math.pi * kappa * kn( 1, kappa*x )
+        Phi2x  =  cot.factor * x * kappa * kn( 1, kappa*x )
+        dPhi2x = -cot.factor * kappa * kappa*x * kn( 0, kappa*x )
+  
+    else:
+        cot = container.Container( "cube",
+                                   helper.get_mesh( "cube", 99 ),
+                                   121,
+                                   gamma = 1 )
+        kappa = cot.kappa
+        factor = cot.factor
+        Phi1x  =  1. / 4 / math.pi * np.exp( -kappa*x ) / x
+        dPhi1x = -1. / 4 / math.pi * np.exp( -kappa*x ) / x / x * (kappa*x+1) 
+        Phi2x  =  cot.factor * np.power(x*kappa,0.5) * kv( 0.5, kappa*x )
+        dPhi2x = -cot.factor * kappa * np.power(x*kappa,0.5) * kv( 0.5, kappa*x )
+  
     
-    #Compile Phi2
-    phi2_file = open( "cpp/fundamental2d2.cpp" , 'r' )  
-    phi2_code = phi2_file.read()
-    phi2_file.close()      
-    phi2 = Expression( phi2_code, kappa=kappa, factor = factor, sig2 = sig2 )
-    
-    
-    G1 = Radial( cot, 1 )
-    G2 = Radial( cot, 2 )
+    G1, dG1, G2, dG2 = radial( cot )
+  
 
-    print "Norm G2-phi2 = "      + str( err(G2, phi2, cot.V) )
-    print "Norm G1-phi1 = "      + str( err(G1, phi1, cot.V) )
+    G1x = G1( x )    
+    dG1x = dG1( x )    
+    G2x = G2( x ) 
+    dG2x = dG2( x ) 
+        
+    plt.plot( x, G1x,         color = 'r', label = 'G1'      )
+    plt.plot( x, Phi1x,       color = 'b', label = 'Phi1'    )
+    plt.plot( x, Phi1x-G1x,   color = 'g', label = 'Phi1-G1x')
+    plt.title( str(d) + "D" )
+    plt.ylim([-5,5]) 
+    plt.legend()
+    plt.show()
+    
+    plt.plot( x, dG1x,          color = 'r', label = 'dG1'       )
+    plt.plot( x, dPhi1x,        color = 'b', label = 'dPhi1'     )
+    plt.plot( x, dPhi1x-dG1x,   color = 'g', label = 'dPhi1-dG1x')
+    plt.title( str(d) + "D" )
+    plt.ylim([-15,15]) 
+    plt.legend()
+    plt.show()
+  
+    plt.plot( x, G2x,       color = 'r', label = 'G2'      )
+    plt.plot( x, Phi2x,     color = 'b', label = 'Phi2'    )
+    plt.plot( x, Phi2x-G2x, color = 'g', label = 'Phi2-G2x')
+    plt.title( str(d) + "D" )
+    plt.legend()
+    plt.show()
+    
+    plt.plot( x, dG2x,        color = 'r', label = 'dG2'       )
+    plt.plot( x, dPhi2x,      color = 'b', label = 'dPhi2'     )
+    plt.plot( x, dPhi2x-dG2x, color = 'g', label = 'dPhi2-dG2x')
+    plt.title( str(d) + "D" )
+    plt.legend()
+    plt.show()
 
+
+    
