@@ -200,11 +200,12 @@ def save_plots( data,
     on the description variable desc.
     '''
     
+    location = "../PriorCov/data/" + container.mesh_name 
     if "square" in container.mesh_name or "parallelogram" in container.mesh_name:
-
-        line_file   = "../PriorCov/data/" + container.mesh_name + "/line.txt"
-        source_file = "../PriorCov/data/" + container.mesh_name + "/source.txt"    
-        plot_file   = "../PriorCov/data/" + container.mesh_name + "/" + add_desc( desc ) + ".txt"
+        
+        line_file   = location + "/line.txt"
+        source_file = location + "/source.txt"    
+        plot_file   = location + "/" + add_desc( desc ) + ".txt"
         empty_file( line_file, source_file, plot_file )
 
         source = dic[container.mesh_name].source
@@ -240,7 +241,7 @@ def save_plots( data,
         plt.close()
  
     else:        
-        loc_file = File( "../PriorCov/data/" + container.mesh_name + "/" + add_desc( desc ) + ".pvd" )
+        loc_file = File( location + "/" + add_desc( desc ) + ".pvd" )
         loc_file << data
 
 def add_desc( str_list ):
@@ -286,8 +287,8 @@ dic["square"].source = np.array( [ 0.05    , 0.5   ] )
 
 
 dic["parallelogram"] = lambda: get_refined_mesh( "parallelogram",
-                                                 150,
-                                                 nor=1, 
+                                                 50,
+                                                 nor=0, 
                                                  tol=0.7, 
                                                  factor=0.7, 
                                                  greens=True )

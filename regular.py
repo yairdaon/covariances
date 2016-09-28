@@ -21,6 +21,6 @@ def ordinary( container, BC ):
     loc_solver( sol.vector(), assemble(tmp*v*dx) )
     
     helper.save_plots( sol,
-                       [ BC, "Greens Function"],
+                       [ BC, "Greens Function", container.quad],
                        container )
     

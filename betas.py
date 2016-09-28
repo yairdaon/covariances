@@ -14,7 +14,6 @@ import radial
 #################################################################
 # Used since you can't sub-subclass an Expression ###############
 #################################################################
-
 def generalEval( self, value, y ):
         
     # If we already did the calculation, return the value...
@@ -32,8 +31,8 @@ def generalEval( self, value, y ):
             raise ValueError( "Variable dim must equal 2 or 3" )
 
 def generalInit( self, cot ):
-        
-    self.V = dol.FunctionSpace( cot.mesh_obj, "DG", 0 )
+
+    self.V = dol.FunctionSpace( cot.mesh_obj, "DG", 0 )   
     u = dol.TrialFunction( self.V )
     v = dol.TestFunction ( self.V )
     self.M = dol.assemble( u*v*dol.dx )
@@ -367,7 +366,7 @@ class Beta3DRadial(dol.Expression):
     def value_shape(self):
         return (3,)
 
-
+# DEPRECATED
 class IntegratedExpression(dol.Expression):
     '''
     Compile and integrate a given expression. Expression
@@ -412,13 +411,8 @@ class IntegratedExpression(dol.Expression):
         # point we want its value.
         for i in range( self.cot.dim ):
             self.xp.y[i] = y[i]
-        # import time
-      
-        # start = time.time()            
         
-        #tmp = dol.interpolate( self.xp, self.V )
-        
-        # print "Elapsed " + str( time.time() - start )
+        # tmp = dol.interpolate( self.xp, self.V )
         # tmp = self.M * tmp.vector()
         
         # The return value is the an approximation to the integral of the expression

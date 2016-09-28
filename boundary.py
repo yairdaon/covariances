@@ -19,7 +19,11 @@ def bdryBetas( mesh_name,
                quad,
                normal,
                dims ):
-
+    
+    beta_file = "../PriorCov/data/" + cot.mesh_name + "/beta_" + quad + "_" + str(dims) + ".txt"
+    helper.empty_file( beta_file )
+    print beta_file
+        
     mesh_obj = helper.get_mesh( mesh_name, dims )
 
     cot = container.Container( mesh_name,
@@ -29,15 +33,9 @@ def bdryBetas( mesh_name,
 
     beta_obj = cot.chooseBeta()
         
-    beta_file = "../PriorCov/data/" + mesh_name + "/beta_" + quad + "_" + str(dims) + ".txt"
-    helper.empty_file( beta_file )
-    print beta_file
-    
-
     if "adaptive" in quad:
-        ran = np.linspace( 0, 1, num=77, endpoint=True )
-         
-        for s in ran:
+        
+        for s in np.linspace( 0, 1, num=77, endpoint=True):
             v = np.zeros( cot.dim )
             v[-1] = s
             if cot.dim == 3:
@@ -79,29 +77,51 @@ def bdryBetas( mesh_name,
             # print
             
             helper.add_point( beta_file,
-                              y[-1],
+                              inv[-1],
                               np.dot( beta, normal ) )
     print "Average time per eval = " + str(total_time/counter)
 
- 
-A = dic["parallelogram"].transformation
-nn = np.array( [ -A[1,1], A[0,1] ] ) / math.sqrt( A[0,1]**2 + A[1,1]**2 )
-bdryBetas( "parallelogram", A, "adaptive", nn, 2 )
-bdryBetas( "parallelogram", A, "std", nn, 166 )
-bdryBetas( "parallelogram", A, "std", nn, 177 )
-bdryBetas( "parallelogram", A, "std", nn, 188 )
+for i in range( 5, 8 ):
+    
+    n_disc = 2**i
+    
+    print
+    print "*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-"
+    print "2D plots, i = " + str(i) + ", n = " + str(n_disc)
+    print "*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-"
+    print
 
-A = np.identity( 2 )
-nn = np.array( [ -1.0, 0.0 ] )
-bdryBetas( "square", A, "adaptive", nn, 2 )
-bdryBetas( "square", A, "std", nn, 166 )
-bdryBetas( "square", A, "std", nn, 177 )
-bdryBetas( "square", A, "std", nn, 188 )
+    A = dic["parallelogram"].transformation
+    nn = np.array( [ -A[1,1], A[0,1] ] ) / math.sqrt( A[0,1]**2 + A[1,1]**2 )
+    bdryBetas( "parallelogram", A, "radial", nn, n_disc )
+    bdryBetas( "parallelogram", A, "std", nn, n_disc )
+    
+    if i == 4:
+        bdryBetas( "parallelogram", A, "adaptive", nn, 2 )
+     
+    
+    A = np.identity( 2 )
+    nn = np.array( [ -1.0, 0.0 ] )
+    bdryBetas( "square", A, "radial", nn, n_disc )
+    bdryBetas( "square", A, "std", nn, n_disc )
+    if i == 4:
+        bdryBetas( "square", A, "adaptive", nn, 2 )
+   
 
-A = np.identity( 3 )
-nn = np.array( [ -1.0, 0.0, 0.0 ] )
-bdryBetas( "cube", A, "adaptive", nn, 2 )
-bdryBetas( "cube", A, "std", nn, 166 )
-bdryBetas( "cube", A, "std", nn, 177 )
-bdryBetas( "cube", A, "std", nn, 188 )
-
+for i in range( 5, 8 ):
+    
+    n_disc = 2**i
+    
+    print
+    print "*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-"
+    print "3D plots, i = " + str(i) + ", n = " + str(n_disc)
+    print "*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-"
+    print
+        
+    A = np.identity( 3 )
+    nn = np.array( [ -1.0, 0.0, 0.0 ] )
+    bdryBetas( "cube", A, "radial", nn, n_disc )
+    bdryBetas( "cube", A, "std", nn, n_disc )
+    if i == 4:
+        bdryBetas( "cube", A, "adaptive", nn, 2 )
+   

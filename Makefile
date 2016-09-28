@@ -4,12 +4,11 @@ DEPS = header.h cubature.h converged.h vwrapper.h aux.h
 OBJ = mytests.o helper.o hcubature.o 
 
 run:
+	python simulate.py square
+	python simulate.py parallelogram
+	python simulate.py antarctica
+	python simualte.py cube 
 	python boundary.py
-	python parallelogram_beta.py
-	python cube_beta.py	
-	python square.py
-	python parallelogram.py
-	python antarctica.py
 
 tmp:
 	rm -rvf tmp.o*

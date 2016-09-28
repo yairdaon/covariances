@@ -1,21 +1,24 @@
 #!/usr/bin/python
 import time
+import sys
 
 import helper
 import container
-import fundamental2D
+import fundamental
 import variance
 import regular
 from helper import dic as dic
   
+mesh_name = sys.argv[1]
 print
-print "Parallelogram"            
+print mesh_name
 
-container = container.Container( "parallelogram",
-                                 dic["parallelogram"](), # get the mesh
-                                 dic["parallelogram"].alpha,
+
+container = container.Container( mesh_name,
+                                 dic[mesh_name](), # get the mesh
+                                 dic[mesh_name].alpha,
                                  gamma = 1,
-                                 quad = "radial" )
+                                 quad = "std" )
 
 
 print "roininen" 
@@ -38,7 +41,7 @@ print
 
 print "fundamental"
 start_time = time.time()
-fundamental2D.fundamental( container )
+fundamental.fundamental( container )
 print "Run time: " + str( time.time() - start_time )
 print
 

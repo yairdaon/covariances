@@ -87,16 +87,20 @@ if True:
                                mesh_obj,
                                alpha )
     
-    cb_beta  = betas.Beta2DAdaptive( cot )(0.0,0.5)
     
     factor = cot.factor / 2. / math.pi 
     denom = denom2D( X0, X1, cot.kappa, n, factor = factor )
     enum  = np.array( enum2D( X0, X1, cot.kappa, n, factor = factor ) )  
     nx_beta = enum / denom
     
-    fe_beta  = betas.Beta2D( cot )(0.0,0.5)
-
-    rd_beta  = betas.Beta2DRadial( cot )(0.0, 0.5)
+    b = betas.Beta2DAdaptive( cot )
+    cb_beta = b(0.0,0.5)
+    
+    b = betas.Beta2D( cot )
+    fe_beta = b(0.0,0.5)
+    
+    b = betas.Beta2DRadial( cot )
+    rd_beta = b(0.0, 0.5)
 
     print "Cubtur 2D: " + str( -cb_beta )
     print "Numrix 2D: " + str( -nx_beta )  
