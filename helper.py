@@ -278,7 +278,7 @@ def add_point( plot_file, *args ):
 
 dic = {}
 
-dic["square"] = lambda: get_mesh( "square", 256 )
+dic["square"] = lambda: get_mesh( "square", 100 )
 # dic["square"].x = 256
 # dic["square"].y = 256
 dic["square"].alpha = 121.0
@@ -288,13 +288,8 @@ dic["square"].source = np.array( [ 0.05    , 0.5   ] )
 
 dic["parallelogram"] = lambda: get_refined_mesh( "parallelogram",
                                                  50,
-                                                 nor=0, 
-                                                 tol=0.7, 
-                                                 factor=0.7, 
-                                                 greens=True )
+                                                 nor=0 )
 dic["parallelogram"].alpha = 121.
-# dic["parallelogram"].x = 150
-# dic["parallelogram"].y = 150
 dic["parallelogram"].s = 1.0
 theta = math.pi/8
 dic["parallelogram"].transformation = np.array( [ [ math.cos(math.pi/4-theta) , math.cos(math.pi/4+theta)  ],
@@ -314,16 +309,12 @@ dic["antarctica"].gamma = 1.
 
 
 dic["cube"] = lambda: get_refined_mesh( "cube", 
-                                        15,
-                                        nor = 0, 
+                                        20,
+                                        nor = 2, 
                                         tol = 0.2,
                                         factor = 0.4,
                                         greens = True )
 dic["cube"].alpha = 25.
-# n = 72
-# dic["cube"].x = n
-# dic["cube"].y = n
-# dic["cube"].z = n 
 dic["cube"].source    = np.array( [ 0.05  ,  0.5,  0.5] ) 
 dic["cube"].equations = np.array( [ [1    ,    1,    1],
                                     [0.125, 0.25,  0.5], 
@@ -333,6 +324,3 @@ dic["cube"].slope = 0.3
 dic["cube"].coefficients = np.array( [1, 0.5, dic["cube"].slope ] )
 dic["cube"].a, dic["cube"].b, dic["cube"].c = np.linalg.solve( dic["cube"].equations, dic["cube"].coefficients )
 dic["cube"].s  = 1.
-
-dic["dolfin"] = lambda: None
-dic["dolfin"].source = np.array( [ 0.45    , 0.65  ] ) 

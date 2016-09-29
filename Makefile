@@ -5,9 +5,10 @@ OBJ = mytests.o helper.o hcubature.o
 
 run:
 	python simulate.py square
-	python simulate.py parallelogram
+	python simulate.py parallelogram std
+	python simulate.py parallelogram radial
 	python simulate.py antarctica
-	python simualte.py cube 
+	python simulate.py cube 
 	python boundary.py
 
 tmp:

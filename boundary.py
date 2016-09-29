@@ -20,7 +20,7 @@ def bdryBetas( mesh_name,
                normal,
                dims ):
     
-    beta_file = "../PriorCov/data/" + cot.mesh_name + "/beta_" + quad + "_" + str(dims) + ".txt"
+    beta_file = "../PriorCov/data/" + mesh_name + "/beta_" + quad + "_" + str(dims) + ".txt"
     helper.empty_file( beta_file )
     print beta_file
         

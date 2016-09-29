@@ -94,7 +94,9 @@ def radial( container, h=None ):
     return G1, dG1, G2, dG2
 
 if __name__ == "__main__":
-
+    '''
+    If you run this module as main, you'll get some plots.
+    '''
     from scipy.special import kv as kv
     from scipy.special import kn as kn
     from matplotlib import pyplot as plt
