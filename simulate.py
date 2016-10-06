@@ -93,8 +93,8 @@ def green( cot, BC ):
     helper.apply_sources( cot, b )
 
     sol = Function( cot.V )
-    import pdb
-    pdb.set_trace()
+    #import pdb
+    #pdb.set_trace()
     loc_solver( tmp.vector(), b )
     loc_solver( sol.vector(), assemble(tmp*v*dx) )
     

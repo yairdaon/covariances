@@ -114,8 +114,15 @@ class Container():
             # factorization and gain speed up. Here, we call
             # the "form" routine that assembles the matrix used.
             # See documentation of "form" below.
-            loc_solver = LUSolver( self.form(BC) )
-            loc_solver.parameters['reuse_factorization'] = True 
+
+            #loc_solver = PETScLUSolver(None, self.form(BC) )
+
+            #loc_solver = KrylovSolver( self.form(BC), method='cg')
+
+            loc_solver = PETScKrylovSolver("cg","ilu")
+            #            log_solver.parameters["linear_solver"] = "mumps"
+            loc_solver.set_operator( self.form(BC))
+            #loc_solver.parameters['reuse_factorization'] = True
             
             # This is a solver that knows all it needs to know!!
             # Just give it an input coefficient vector and
