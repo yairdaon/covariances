@@ -129,7 +129,7 @@ class Container():
         boundary condition described by the 
         string BC. Makes sure we reuse
         the LU factorization as well.
-         '''
+        '''
         
         if not BC in self._form:
             

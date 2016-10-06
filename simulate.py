@@ -9,17 +9,17 @@ import helper
 import container
 from helper import dic as dic
 
-def fundamental2D( container ): 
+def fundamental2D( cot ): 
     '''
     plots fundamental solution in 2D
     '''
-    x = dic[container.mesh_name].source
+    x = dic[cot.mesh_name].source
     
-    V = container.V
-    mesh_obj = container.mesh_obj
-    kappa = container.kappa
+    V = cot.V
+    mesh_obj = cot.mesh_obj
+    kappa = cot.kappa
     
-    y  = container.mesh_obj.coordinates()
+    y  = cot.mesh_obj.coordinates()
 
     x_y = x-y
     ra  = x_y * x_y
@@ -27,26 +27,26 @@ def fundamental2D( container ):
     ra  = np.sqrt( ra ) + 1e-13
     kappara = kappa * ra
 
-    phi_arr = container.factor * np.power( kappara, 1.0 ) * sp.kn( 1, kappara )
+    phi_arr = cot.factor * np.power( kappara, 1.0 ) * sp.kn( 1, kappara )
     phi     = Function( V )
     phi.vector().set_local( phi_arr[dof_to_vertex_map(V)] )
 
     helper.save_plots( phi, 
                        ["Free Space", "Greens Function"], 
-                       container )
+                       cot )
 
-def fundamental3D( container ):
+def fundamental3D( cot ):
     '''
     plots fundamental solution in 3D
     '''
     
-    x = dic[container.mesh_name].source
+    x = dic[cot.mesh_name].source
     
-    V = container.V
-    mesh_obj = container.mesh_obj
-    kappa = container.kappa
+    V = cot.V
+    mesh_obj = cot.mesh_obj
+    kappa = cot.kappa
     
-    y  = container.mesh_obj.coordinates()
+    y  = cot.mesh_obj.coordinates()
 
     x_y = x-y
     ra  = x_y * x_y
@@ -54,72 +54,79 @@ def fundamental3D( container ):
     ra  = np.sqrt( ra ) + 1e-13
     kappara = kappa * ra
 
-    phi_arr = container.factor * np.power( kappara, 0.5 ) * sp.kv( 0.5, kappara )
+    phi_arr = cot.factor * np.power( kappara, 0.5 ) * sp.kv( 0.5, kappara )
     phi     = Function( V )
     phi.vector().set_local( phi_arr[dof_to_vertex_map(V)] )
 
     helper.save_plots( phi, 
                        ["Free Space", "Greens Function"], 
-                       container )
+                       cot )
 
 
-def fundamental( container ):
+def fundamental( cot ):
     ''' 
     pretty self explanatory.
     '''
-    if container.dim == 2:
-        fundamental2D( container )
-    if container.dim == 3:
-        fundamental3D( container )
+    if cot.dim == 2:
+        fundamental2D( cot )
+    if cot.dim == 3:
+        fundamental3D( cot )
 
 
-def green( container, BC ):
+def green( cot, BC ):
     '''
     plots the domain Green's function with boundary
     condition BC on the mesh for a source.
     '''
-    u = container.u
-    v = container.v
-    normal = container.normal
-    kappa = container.kappa
+    u = cot.u
+    v = cot.v
+    normal = cot.normal
+    kappa = cot.kappa
     f = Constant( 0.0 )
-    tmp = Function( container.V )
+    tmp = Function( cot.V )
 
-    loc_solver = container.solvers( BC )
+    loc_solver = cot.solvers( BC )
     L = f*v*dx
     b = assemble(L)
     
     # Make the RHS have delta funcitons at the sources
-    helper.apply_sources( container, b )
+    helper.apply_sources( cot, b )
 
-    sol = Function( container.V )
+    sol = Function( cot.V )
+    import pdb
+    pdb.set_trace()
     loc_solver( tmp.vector(), b )
     loc_solver( sol.vector(), assemble(tmp*v*dx) )
     
+    # Create the descrition list so we keep track of files
+    desc = [ BC, "Greens Function" ]
+    if "ours" in BC:
+        desc.append( cot.quad )
+        
     helper.save_plots( sol,
-                       [ BC, "Greens Function", container.quad],
-                       container )
+                       desc,
+                       cot )
     
 
-def variance( container, BC ):
+def variance( cot, BC ):
     '''
     plots domain pointwise variance with boundary condition BC.
     '''
-    u = container.u
-    v = container.v
-    kappa = container.kappa
+    u = cot.u
+    v = cot.v
+    kappa = cot.kappa
     f = Constant( 0.0 )
-    tmp = Function( container.V )
-    g = container.gs( BC )
+    tmp = Function( cot.V )
+    g = cot.gs( BC )
     
-    loc_solver = container.solvers( BC )
+    loc_solver = cot.solvers( BC )
 
     L = f*v*dx
     b = assemble(L)
 
-    helper.apply_sources( container, b, scaling = g )
+    helper.apply_sources( cot, b, scaling = g )
 
-    sol_cos_var = Function( container.V )
+    sol_cos_var = Function( cot.V )
     loc_solver( tmp.vector(), b )
     loc_solver( sol_cos_var.vector(), assemble(tmp*v*dx) )
     
@@ -127,13 +134,20 @@ def variance( container, BC ):
         sol_cos_var.vector().array() * g.vector().array() 
     ) 
     
-    helper.save_plots( sol_cos_var,
-                       [ BC + " Constant Variance", "Greens Function"],
-                       container )
+    # Create the descrition list so we keep track of files
+    greens_desc = [ BC, "Constant Variance", "Greens Function"]
+    var_desc    = [ BC, "Variance" ]
+    if "ours" in BC:
+        greens_desc.append( cot.quad )
+        var_desc.append( cot.quad )
+
+    helper.save_plots( cot.variances( BC ),
+                       var_desc,
+                       cot )
     
-    helper.save_plots( container.variances( BC ),
-                       [ BC, "Variance"],
-                       container )
+    helper.save_plots( sol_cos_var,
+                       greens_desc,
+                       cot )
 
   
 
@@ -148,27 +162,27 @@ if __name__ == "__main__":
     print mesh_name
 
     
-    container = container.Container( mesh_name,
-                                     dic[mesh_name](), # get the mesh
-                                     dic[mesh_name].alpha,
-                                     gamma = 1,
-                                     quad = quad )
+    cot = container.Container( mesh_name,
+                               dic[mesh_name](), # get the mesh
+                               dic[mesh_name].alpha,
+                               gamma = 1,
+                               quad = quad )
     
     print "fundamental"
     start_time = time.time()
-    fundamental( container )
+    fundamental( cot )
     print "Run time: " + str( time.time() - start_time )
     print
 
     print "neumann"
     start_time = time.time()
-    green(container, "neumann" )
+    green( cot, "neumann" )
     print "Run time: " + str( time.time() - start_time )
     print
 
     print "dirichlet"
     start_time = time.time()
-    green(container, "dirichlet" )
+    green( cot, "dirichlet" )
     print "Run time: " + str( time.time() - start_time )
     print
 
@@ -176,24 +190,30 @@ if __name__ == "__main__":
         
         print "roininen" 
         start_time = time.time()
-        green(container, "roininen robin" )
+        green( cot, "roininen" )
+        print "Run time: " + str( time.time() - start_time )
+        print
+
+        print "roininen variance" 
+        start_time = time.time()
+        variance( cot, "roininen" )
         print "Run time: " + str( time.time() - start_time )
         print
 
         print "ours"
         start_time = time.time()
-        green(container, "ours" )
+        green( cot, "ours" )
         print "Run time: " + str( time.time() - start_time )
         print
 
         print "our robin variance"
         start_time = time.time()
-        variance( container, "ours" )
+        variance( cot, "ours" )
         print "Run time: " + str( time.time() - start_time )
         print
 
         print "neumann variance"
         start_time = time.time()
-        variance( container, "neumann" )
+        variance( cot, "neumann" )
         print "Run time: " + str( time.time() - start_time )
         print

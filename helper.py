@@ -52,6 +52,7 @@ def get_mesh( mesh_name, dims ):
     Generate a mesh.
     '''
     
+    
     pts = [ np.array( [ 0.0, 1.0 ] ),
             np.array( [ 1.0, 1.0 ] ),
             np.array( [ 1.0, 0.0 ] ),
@@ -109,9 +110,9 @@ def get_refined_mesh( mesh_name,
     nor is number of refinements - how many refinement 
     iterations we take.
     
-    tol - the size of the region we refine initially.
+    tol (stands for tolernance) -  the size of the region we refine initially.
 
-    factor - by how much the region shrinks with each 
+    factor - by what factor The region shrinks with each 
     iteration refinement.
     '''
 
@@ -194,21 +195,21 @@ def get_refined_mesh( mesh_name,
     
 def save_plots( data, 
                 desc,
-                container ):
+                cot ):
     '''
     a routine to save plots and data for plots, based
     on the description variable desc.
     '''
-    
-    location = "../PriorCov/data/" + container.mesh_name 
-    if "square" in container.mesh_name or "parallelogram" in container.mesh_name:
+       
+    location = "../PriorCov/data/" + cot.mesh_name 
+    if "square" in cot.mesh_name or "parallelogram" in cot.mesh_name:
         
         line_file   = location + "/line.txt"
         source_file = location + "/source.txt"    
         plot_file   = location + "/" + add_desc( desc ) + ".txt"
         empty_file( line_file, source_file, plot_file )
 
-        source = dic[container.mesh_name].source
+        source = dic[cot.mesh_name].source
         add_point( source_file, source[0], source[1] )
 
         x_range = np.hstack( ( np.arange( -0.1 , 0.05, 0.001 ),
@@ -216,7 +217,7 @@ def save_plots( data,
         y_data = [] 
         x_real = []
 
-        if "square" in container.mesh_name:
+        if "square" in cot.mesh_name:
             slope = 0.0
         else:
             slope = .6
@@ -234,11 +235,11 @@ def save_plots( data,
             except:
                 pass
 
-        plt.plot( x_real, y_data )
-        plt.title( container.mesh_name + make_tit( desc ) )
-        #plt.ylim( container.ran )
-        plt.savefig( "data/" + container.mesh_name + "/" + add_desc( desc ) )
-        plt.close()
+        # plt.plot( x_real, y_data )
+        # plt.title( cot.mesh_name + make_tit( desc ) )
+        # #plt.ylim( cot.ran )
+        # plt.savefig( "data/" + cot.mesh_name + "/" + add_desc( desc ) )
+        # plt.close()
  
     else:        
         loc_file = File( location + "/" + add_desc( desc ) + ".pvd" )
@@ -278,16 +279,14 @@ def add_point( plot_file, *args ):
 
 dic = {}
 
-dic["square"] = lambda: get_mesh( "square", 100 )
-# dic["square"].x = 256
-# dic["square"].y = 256
+dic["square"] = lambda: get_mesh( "square", 128 )
 dic["square"].alpha = 121.0
 dic["square"].source = np.array( [ 0.05    , 0.5   ] ) 
 
 
 
 dic["parallelogram"] = lambda: get_refined_mesh( "parallelogram",
-                                                 50,
+                                                 128,
                                                  nor=0 )
 dic["parallelogram"].alpha = 121.
 dic["parallelogram"].s = 1.0
@@ -309,8 +308,8 @@ dic["antarctica"].gamma = 1.
 
 
 dic["cube"] = lambda: get_refined_mesh( "cube", 
-                                        20,
-                                        nor = 2, 
+                                        64,
+                                        nor = 0, 
                                         tol = 0.2,
                                         factor = 0.4,
                                         greens = True )

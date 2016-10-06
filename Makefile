@@ -7,10 +7,16 @@ run:
 	python simulate.py square
 	python simulate.py parallelogram std
 	python simulate.py parallelogram radial
-	python simulate.py antarctica
-	python simulate.py cube 
+	python simulate.py antarctica std
+	python simulate.py antarctica radial	
+	python simulate.py cube std
+	python simulate.py cube radial
 	python boundary.py
 
+cube:
+	python simulate.py cube std
+	python simulate.py cube radial
+ 
 tmp:
 	rm -rvf tmp.o*
 	sbatch tmp
