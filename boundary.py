@@ -20,7 +20,7 @@ def bdryBetas( mesh_name,
                normal,
                dims ):
     
-    beta_file = "../PriorCov/data/" + mesh_name + "/beta_" + quad + "_" + str(dims) + ".txt"
+    beta_file = "data/" + mesh_name + "/beta_" + quad + "_" + str(dims) + ".txt"
     helper.empty_file( beta_file )
     print beta_file
         
@@ -80,7 +80,7 @@ def bdryBetas( mesh_name,
                               inv[-1],
                               np.dot( beta, normal ) )
     print "Average time per eval = " + str(total_time/counter)
-
+    
 for i in range( 5, 8 ):
     
     n_disc = 2**i
@@ -96,7 +96,7 @@ for i in range( 5, 8 ):
     bdryBetas( "parallelogram", A, "radial", nn, n_disc )
     bdryBetas( "parallelogram", A, "std", nn, n_disc )
     
-    if i == 4:
+    if i == 5:
         bdryBetas( "parallelogram", A, "adaptive", nn, 2 )
      
     
@@ -104,11 +104,11 @@ for i in range( 5, 8 ):
     nn = np.array( [ -1.0, 0.0 ] )
     bdryBetas( "square", A, "radial", nn, n_disc )
     bdryBetas( "square", A, "std", nn, n_disc )
-    if i == 4:
+    if i == 5:
         bdryBetas( "square", A, "adaptive", nn, 2 )
    
 
-for i in range( 5, 8 ):
+for i in range( 6, 8 ):
     
     n_disc = 2**i
     
@@ -122,6 +122,6 @@ for i in range( 5, 8 ):
     nn = np.array( [ -1.0, 0.0, 0.0 ] )
     bdryBetas( "cube", A, "radial", nn, n_disc )
     bdryBetas( "cube", A, "std", nn, n_disc )
-    if i == 4:
+    if i == 6:
         bdryBetas( "cube", A, "adaptive", nn, 2 )
    

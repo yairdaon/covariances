@@ -20,7 +20,8 @@ class Container():
                   mesh_obj,
                   alpha,
                   gamma = 1.0,
-                  quad = "std" ):
+                  quad = "radial",
+                  numSamples = 0):
 
         # The name of the mesh.
         if "antarctica" in mesh_name:
@@ -59,7 +60,7 @@ class Container():
         # every boundary condition. These are not directly used. 
         # They are called by the properties (functions with 
         # @property above their definition ) below.
-        self._variances = {}
+        self._std = {}
         self._gs = {}
         self._form = {}
         self._solvers = {}
@@ -68,7 +69,9 @@ class Container():
         self.set_constants()
 
         self.quad = quad
-    
+        
+        self.numSamples = numSamples
+
     def set_constants( self ):
         '''
         We assume the user gives us an the parameters
@@ -110,23 +113,16 @@ class Container():
         # If the corresponding solver was not made yet, make it.
         if not BC in self._solvers:
             
-            # Use LU solver since this allows reusing the
-            # factorization and gain speed up. Here, we call
-            # the "form" routine that assembles the matrix used.
-            # See documentation of "form" below.
+            # We call the "form" routine that assembles
+            # the matrix used. See documentation of "form" below.
 
-            #loc_solver = PETScLUSolver(None, self.form(BC) )
-
-            #loc_solver = KrylovSolver( self.form(BC), method='cg')
-
-            loc_solver = PETScKrylovSolver("cg","ilu")
-            #            log_solver.parameters["linear_solver"] = "mumps"
-            loc_solver.set_operator( self.form(BC))
-            #loc_solver.parameters['reuse_factorization'] = True
-            
             # This is a solver that knows all it needs to know!!
             # Just give it an input coefficient vector and
             # watch the magic happen.
+            loc_solver = PETScKrylovSolver("cg","amg")
+            loc_solver.set_operator( self.form(BC))
+            loc_solver.set_reuse_preconditioner(True)
+
             self._solvers[BC] = loc_solver.solve
         return self._solvers[BC]
 
@@ -227,30 +223,32 @@ class Container():
         The function g used for normalizing the pointwise
         variance. See paper appendix for details.
         '''
-        if BC in self._gs:
-            return self._gs[BC]
-        else:
-            self.set_vg( BC )
-            return self._gs[BC]
+        if "dirichlet" in BC:
+            raise ValueError( "You cannot normalize variance for Dirichlet BC. Variance is zero on boundary.")
             
-    def variances( self, BC ):
-        if BC in self._variances:
-            return self._variances[BC]
+        elif not BC in self._gs:
+            self.set_std_g( BC )
+        
+        return self._gs[BC]
+            
+    def stds( self, BC ):
+        if BC in self._std:
+            return self._std[BC]
         else:
-            self.set_vg( BC )
-            return self._variances[BC]
+            self.set_std_g( BC )
+            return self._std[BC]
 
 
-    def set_vg( self, BC ):
+    def set_std_g( self, BC ):
         '''
         Calculates pointwise variacne and the function g used
         to normalize the variance.
         '''
     
-        # Holds pointwise variance values
-        var   = Function( self.V )
+        # Eventually holds pointwise standard deviations
+        std   = Function( self.V )
         
-        # Holds sig / sqrt( pointwise variance ). See paper appendix.
+        # Holds sig / standard deviation. See paper appendix.
         g     = Function( self.V )
         
         # Solves a discretized helmholtz equation with boundary condition BC.
@@ -263,53 +261,80 @@ class Container():
         # Dimension of FE function space.
         n     = V.dim()
 
-        mesh_obj = self.mesh_obj
-        tmp1 = Function( V )
-        tmp2 = Function( V )
+        if self.numSamples == 0:
+            mesh_obj = self.mesh_obj
+            tmp1 = Function( V )
+            tmp2 = Function( V )
 
-        # This is going to be a delta function RHS. You'll see.
-        b    = assemble( Constant(0.0) * self.v * dx )
-                     
-        # Get all coordiantes
-        coor = V.tabulate_dof_coordinates()
-        coor.resize(( V.dim(), self.dim ))
-        
-        vertex_values = np.zeros(mesh_obj.num_vertices())
+            # This is going to be a delta function RHS. You'll see.
+            b    = assemble( Constant(0.0) * self.v * dx )
             
-        # Find pointwise variance for every vertex x as the value
-        # of the Green's function at x: G(x,x) = (C delta_x ) (x)
-        for vertex in vertices( mesh_obj ):
+            # Get all coordiantes
+            # coor = V.tabulate_dof_coordinates()
+            # coor.resize(( V.dim(), self.dim ))
+        
+            vertex_values = np.zeros(mesh_obj.num_vertices())
+            
+            # Find pointwise variance for every vertex x as the value
+            # of the Green's function at x: G(x,x) = (C delta_x ) (x)
+            for vertex in vertices( mesh_obj ):
                     
-            if self.dim == 2:
-                pt = Point( vertex.x(0), vertex.x(1) )
-            elif self.dim == 3:
-                pt = Point( vertex.x(0), vertex.x(1), vertex.x(2) )
-            else:
-                raise ValueError( "Dimension not supported. Go home." )
+                if self.dim == 2:
+                    pt = Point( vertex.x(0), vertex.x(1) )
+                elif self.dim == 3:
+                    pt = Point( vertex.x(0), vertex.x(1), vertex.x(2) )
+                else:
+                    raise ValueError( "Dimension not supported. Go home." )
                 
-            # Apply point source
-            PointSource( V, pt, 1.0 ).apply( b )
+                # Apply point source
+                PointSource( V, pt, 1.0 ).apply( b )
 
-            # Apply inverse laplacian once ...
-            loc_solver( tmp1.vector(), b )
+                # Apply inverse laplacian once ...
+                loc_solver( tmp1.vector(), b )
 
-            # ... and twice (and reassemble!!!)
-            loc_solver( tmp2.vector(), assemble( tmp1 * self.v * dx ) )
+                # ... and twice (and reassemble!!!)
+                loc_solver( tmp2.vector(), assemble( tmp1 * self.v * dx ) )
                     
-            # Place the value where it belongs.
-            vertex_values[vertex.index()] = tmp2.vector().array()[vertex_to_dof_map(V)[vertex.index()]]
+                # Place the value where it belongs.
+                vertex_values[vertex.index()] = tmp2.vector().array()[vertex_to_dof_map(V)[vertex.index()]]
             
-            # Remove point source
-            PointSource( V, pt, -1.0 ).apply( b )
+                # Remove point source
+                PointSource( V, pt, -1.0 ).apply( b )
         
-        # Set the pointwise variacne value we just calculated in the right spot
-        var.vector().set_local( vertex_values[dof_to_vertex_map(V)] )
+            # Set the pointwise variacne value we just calculated in the right spot
+            std.vector().set_local( vertex_values[dof_to_vertex_map(V)] )
+        
+        else:
+            X = Function( V )
+            Y = Function( V )
+            Z = Function( V )
+            M = assemble( self.u * self.v * dx )
+        
+            for k in range( self.numSamples ):
+            
+                if k % 250 == 0:
+                    print "Took " + str( k ) + " samples."
+                Z.vector().set_local( np.random.normal( size = n ) )
+                loc_solver( X.vector(),     Z.vector() )
+                loc_solver( Y.vector(), M * Z.vector() )
 
+                std.vector().set_local(
+                    std.vector().array() + 
+                    X.vector().array()*Y.vector().array()
+                )
+
+            std.vector().set_local( std.vector().array() / self.numSamples )
+        
         # Get the function g which is used to normalize the variance
-        g.vector().set_local( 
-            np.sqrt( self.sig2 / var.vector().array() )
-        )
+        assert np.min( std.vector().array() ) > 0
+       
+        # Make the variance a standard deviation
+        std.vector().set_local( np.sqrt(std.vector().array()) )
+        if "dirichlet" in BC:
+            g = None
+        else:
+            g.vector().set_local( self.sig / std.vector().array() )
         
         # Keep this data in the place it belongs - in a dictionary.
-        self._variances[BC] = var
+        self._std[BC] = std
         self._gs[BC] =  g 

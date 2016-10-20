@@ -3,6 +3,7 @@ import hashlib
 import math
 from scipy.special import kn as kn
 from scipy.special import kv as kv
+import time
 
 import dolfin as dol
 import instant
@@ -31,21 +32,18 @@ def generalEval( self, value, y ):
     Otherwise, the specific strictEval method is called.
     This method is implemented for every beta.
     '''
+    # if self.dim == 3:
+    #     y = np.minimum( y, 1-y )        
+        
     # If we already did the calculation, return the value...
-    if self.valDic.has_key( y.tostring() ):
+    if self.dic.has_key( y.tostring() ):
         value = self.dic[ y.tostring() ]
+    
     # Otherwise, do the calculation and store it.
     else:
         self.strictEval( value, y )
-        if self.dim == 2:
-            # self.fullDic [ (y[0], y[1]) ] = evalTup 
-            self.tupDic[ (y[0], y[1]) ] = (value[0], value[1]) 
-        elif self.dim == 3:
-            # self.fullDic [ (y[0], y[1], y[2]) ] = evalTup 
-            self.tupDic[ (y[0], y[1], y[2]) ] = (value[0], value[1], value[2]) 
-        else:
-            raise ValueError( "Variable dim must equal 2 or 3" )
-
+        self.dic[ y.tostring() ] = value   
+    
 def generalInit( self, cot ):
     
 
@@ -77,10 +75,8 @@ def generalInit( self, cot ):
     
     self.cot = cot #See the documentation in container.py
     self.dim = cot.dim
-    self.valDic = {}
-    self.tupDic = {}
-    # self.fullDic = {}
-
+    self.dic = {}
+    
 def getRaKappara( self, y ):
     '''
     Just a short method cuz we use this all the time
@@ -415,6 +411,7 @@ class Beta3DRadial(dol.Expression):
             self.G1( ra ) * self.dG2( ra ) +
             self.G2( ra ) * self.dG1( ra )
             )
+        
         en  = np.einsum( "i , ik -> ik", ens/ra, y_x )
         
         self.enum0.vector().set_local( en[:,0] )
@@ -435,7 +432,6 @@ class Beta3DRadial(dol.Expression):
         self.denom.vector().set_local( den     )
         self.denom.vector().set_local( (self.M * self.denom.vector()).array() )
         den = 2 * np.sum( self.denom.vector().array() )
-        
         
         value[0] = en0 / den
         value[1] = en1 / den

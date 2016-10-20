@@ -93,8 +93,6 @@ def green( cot, BC ):
     helper.apply_sources( cot, b )
 
     sol = Function( cot.V )
-    #import pdb
-    #pdb.set_trace()
     loc_solver( tmp.vector(), b )
     loc_solver( sol.vector(), assemble(tmp*v*dx) )
     
@@ -117,38 +115,40 @@ def variance( cot, BC ):
     kappa = cot.kappa
     f = Constant( 0.0 )
     tmp = Function( cot.V )
-    g = cot.gs( BC )
     
     loc_solver = cot.solvers( BC )
 
     L = f*v*dx
     b = assemble(L)
+    if "dirichlet" in BC:
+        pass
+    else:
+        g = cot.gs( BC )
+        helper.apply_sources( cot, b, scaling = g )
 
-    helper.apply_sources( cot, b, scaling = g )
-
-    sol_cos_var = Function( cot.V )
-    loc_solver( tmp.vector(), b )
-    loc_solver( sol_cos_var.vector(), assemble(tmp*v*dx) )
-    
-    sol_cos_var.vector().set_local(  
-        sol_cos_var.vector().array() * g.vector().array() 
-    ) 
+        sol_constant_var = Function( cot.V )
+        loc_solver( tmp.vector(), b )
+        loc_solver( sol_constant_var.vector(), assemble(tmp*v*dx) )
+        sol_constant_var.vector().set_local(  
+            sol_constant_var.vector().array() * g.vector().array() 
+        ) 
     
     # Create the descrition list so we keep track of files
     greens_desc = [ BC, "Constant Variance", "Greens Function"]
-    var_desc    = [ BC, "Variance" ]
+    std_desc    = [ BC, "Standard Deviation" ]
     if "ours" in BC:
         greens_desc.append( cot.quad )
-        var_desc.append( cot.quad )
+        std_desc.append( cot.quad )
 
-    helper.save_plots( cot.variances( BC ),
-                       var_desc,
-                       cot )
-    
-    helper.save_plots( sol_cos_var,
-                       greens_desc,
+    helper.save_plots( cot.stds( BC ),
+                       std_desc,
                        cot )
 
+    if not "dirichlet" in BC:
+        helper.save_plots( sol_constant_var,
+                           greens_desc,
+                           cot )
+        
   
 
 if __name__ == "__main__":
@@ -161,22 +161,20 @@ if __name__ == "__main__":
     print
     print mesh_name
 
+    if "cube" in mesh_name:
+        numSamples = 10000
+    else:
+        numSamples = 0
     
     cot = container.Container( mesh_name,
                                dic[mesh_name](), # get the mesh
                                dic[mesh_name].alpha,
                                gamma = 1,
-                               quad = quad )
-    
+                               quad = quad,
+                               numSamples = numSamples )
     print "fundamental"
     start_time = time.time()
     fundamental( cot )
-    print "Run time: " + str( time.time() - start_time )
-    print
-
-    print "neumann"
-    start_time = time.time()
-    green( cot, "neumann" )
     print "Run time: " + str( time.time() - start_time )
     print
 
@@ -186,26 +184,19 @@ if __name__ == "__main__":
     print "Run time: " + str( time.time() - start_time )
     print
 
+    print "neumann"
+    start_time = time.time()
+    green( cot, "neumann" )
+    print "Run time: " + str( time.time() - start_time )
+    print
+    
     if not "square" in mesh_name: 
         
-        print "roininen" 
-        start_time = time.time()
-        green( cot, "roininen" )
-        print "Run time: " + str( time.time() - start_time )
-        print
-
-        print "roininen variance" 
-        start_time = time.time()
-        variance( cot, "roininen" )
-        print "Run time: " + str( time.time() - start_time )
-        print
-
         print "ours"
         start_time = time.time()
         green( cot, "ours" )
         print "Run time: " + str( time.time() - start_time )
-        print
-
+        
         print "our robin variance"
         start_time = time.time()
         variance( cot, "ours" )
@@ -217,3 +208,24 @@ if __name__ == "__main__":
         variance( cot, "neumann" )
         print "Run time: " + str( time.time() - start_time )
         print
+        
+        print "roininen" 
+        start_time = time.time()
+        green( cot, "roininen" )
+        print "Run time: " + str( time.time() - start_time )
+        print
+        
+        print "dirichlet variance"
+        start_time = time.time()
+        variance( cot, "dirichlet" )
+        print "Run time: " + str( time.time() - start_time )
+        print
+
+        print "roininen variance" 
+        start_time = time.time()
+        variance( cot, "roininen" )
+        print "Run time: " + str( time.time() - start_time )
+        print       
+
+
+    

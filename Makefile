@@ -13,29 +13,9 @@ run:
 	python simulate.py cube radial
 	python boundary.py
 
-cube:
-	python simulate.py cube std
-	python simulate.py cube radial
- 
-tmp:
-	rm -rvf tmp.o*
-	sbatch tmp
-
 tests:
 	rm -rvf test.o*
 	sbatch test
-
-simple:
-	rm -rvf results_simple.o*
-	sbatch simple
-
-parallelogram:
-	rm -rvf results_parallelogram.o*
-	sbatch parall
-
-full: 
-	rm -rvf results_full.o*
-	sbatch full
 
 clean:
 	rm -rvf *~ *.pyc cpp/*~ *.o *.so
@@ -43,17 +23,6 @@ clean:
 	rm -vf cov/C/*.so	
 	rm -rvf build
 	rm -vf cov*.so
-
-
-build7:
-	python2.7 cov/C/setup.py build_ext --inplace
-	mv build cov/C
-	mv *.so cov
-
-build6:
-	python2.7 cov/C/setup.py build_ext --inplace
-	mv build cov/C
-	mv *.so cov
 
 comp: mytests
 	./mytests
