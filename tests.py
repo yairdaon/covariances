@@ -10,6 +10,8 @@ from helper import dic as dic
 
 ############################################
 # Test the cubature file and compilation ###
+# Don't mess with it and don't bother, it ##
+# would make your life miserable. ##########
 ############################################
 if True:
     
@@ -61,6 +63,13 @@ if True:
     print "2D tests!!"
 
     def enum2D( x0,x1, kappa, n, factor = 1 ):
+        '''
+        calculates the enumerator using the naivest
+        of integrations. No FENICS or anything - just
+        numpy and scipy. Returns a vector, because the
+        others also return a vector (which is supposed
+        to be dotted with the unit normal). 
+        '''
         ra = np.sqrt( x0*x0 + x1*x1 ) + 1e-13
         kappara = kappa * ra
         k0      = sp.kn( 0, kappara )
@@ -70,6 +79,11 @@ if True:
         return (  np.sum(tmp*x0) / n**2 , np.sum(tmp*x1) / n**2 )
 
     def denom2D( x0,x1, kappa, n, factor  = 1 ):
+        '''
+        calculates the denominator using the naivest
+        of integrations. No FENICS or anything - just
+        numpy and scipy
+        '''
         ra = np.sqrt( x0*x0 + x1*x1 ) + 1e-13
         kappara = kappa * ra 
         tmp = factor * kappara * sp.kv( 1.0, kappara ) * sp.kn( 0, kappara )
@@ -114,6 +128,13 @@ if True:
     print "3D tests!"
 
     def enum3D( x0,x1,x2, kappa, n ):
+        '''
+        calculates the enumerator using the naivest
+        of integrations. No FENICS or anything - just
+        numpy and scipy. Returns a vector, because the
+        others also return a vector (which is supposed
+        to be dotted with the unit normal). 
+        '''
         ra = np.sqrt( x0*x0 + x1*x1 + x2*x2 ) + 1e-9
         kappara = kappa * ra
         
@@ -129,6 +150,11 @@ if True:
         return ( np.sum(tmp0), np.sum(tmp1), np.sum(tmp2) )
     
     def denom3D( x0,x1,x2, kappa, n ):
+        '''
+        calculates the denominator using the naivest
+        of integrations. No FENICS or anything - just
+        numpy and scipy
+        '''
         ra = np.sqrt( x0*x0 + x1*x1 + x2*x2) + 1e-9
         kappara = kappa * ra 
    
@@ -141,12 +167,8 @@ if True:
     
     print "make the mesh and container..."
     alpha = 25.0
-    mesh_obj = helper.get_refined_mesh( "cube", 
-                                        77,
-                                        nor = 0, 
-                                        tol = 0.5,
-                                        factor = 0.5,
-                                        greens = True )
+    mesh_obj = helper.get_mesh( "cube", 77 )
+                                    
 
     cot = container.Container( "cube",
                                mesh_obj,
@@ -195,7 +217,5 @@ if True:
     print "Cubtur 3D: " + str( -cb_beta_3d ) 
     print "Numrix 3D: " + str( -nx_beta_3d )   
     print "FEniCS 3D: " + str( -fe_beta_3d ) 
-    #print "FEniCS Err : " + str( np.abs( (fe_beta_3d-cb_beta_3d)/cb_beta_3d ) )
     print "Radial   3D: " + str( -rd_beta_3d )
-    #print "Radial Err : " + str( np.abs( (rd_beta_3d-cb_beta_3d)/cb_beta_3d ) )
-
+    

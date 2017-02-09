@@ -9,6 +9,12 @@ import helper
 import container
 from helper import dic as dic
 
+'''
+This module is such a boss - calling on 
+all the other parts of the package and makes
+them do as it pleases.
+'''
+
 def fundamental2D( cot ): 
     '''
     plots fundamental solution in 2D
@@ -161,6 +167,9 @@ if __name__ == "__main__":
     print
     print mesh_name
 
+    # For the cube we sample to get pointwise variance.
+    # For other meshes, we just calculate for every 
+    # grid point
     if "cube" in mesh_name:
         numSamples = 10000
     else:
@@ -172,6 +181,15 @@ if __name__ == "__main__":
                                gamma = 1,
                                quad = quad,
                                numSamples = numSamples )
+    
+    # Run all the required simulations and save them!
+    # How convenient!! 
+    # ours means the boundary condition suggested in 
+    # the paper. roininen refers to the constant Robin
+    # boundary conditin suggested by Roininen et. al.
+    # Reference to that paper may be found in our paper.
+
+
     print "fundamental"
     start_time = time.time()
     fundamental( cot )

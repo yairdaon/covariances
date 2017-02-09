@@ -17,20 +17,33 @@ are used to calculate betas as integrals over domain. This
 is done by first calculating every component in the enumerator
 (before it is dotted with the outward pointing unit normal) and
 the denominator.
+
+The common structure is that every object's __init__ method calls
+the generalInit method defined just below. Then, whenever 
+FENICS needs to evaluate the expression it calls the object's eval
+method. This method is assigned as generalEval. So whenever a
+beta value is required - the method generalEval is called. If the
+value was not calculated before, the object's strictEval method is
+called and that calculates and returns the required value. If the
+value was calculated in the past - it is stored in the object's dic
+variable. When a value is needed, the generalEval method pulls the
+right value from the dic variable.
 '''
 
 
 #################################################################
-# These two methods are used since you can't sub-subclass #######
-# a FEniCS Expression class                               #######
+# The free methods below are used since you can't sub-subclass ##
+# a FEniCS Expression class but we still want them used by all ##
+# classes in this moodule.                                     ##
 #################################################################
 def generalEval( self, value, y ):
     '''
     This is the eval method for the Expression class.
-    It just checks if we did the calculation it is asked
-    to do already. If we did -the result is returned. 
-    Otherwise, the specific strictEval method is called.
-    This method is implemented for every beta.
+    It just checks whether we already did the 
+    calculation it is asked to do. If we did -the
+    result is returned. Otherwise, the specific
+    strictEval method is called. The strictEval 
+    method is implemented for every beta.
     '''
     # if self.dim == 3:
     #     y = np.minimum( y, 1-y )        
@@ -45,8 +58,12 @@ def generalEval( self, value, y ):
         self.dic[ y.tostring() ] = value   
     
 def generalInit( self, cot ):
+    '''
+    This method initializes any of the Beta classes.
+    cot is a container object that holds pretty much
+    everything. See container.py for its documentation.
+    '''
     
-
     # This ensures we don't try to evaluate the fundamental
     # solution at vertices since it is singular there.
     # The DOF for this space are in the middle of cells, not 
@@ -73,17 +90,24 @@ def generalInit( self, cot ):
     self.x = self.V.tabulate_dof_coordinates()
     self.x.resize(( self.V.dim(), cot.dim ))
     
-    self.cot = cot #See the documentation in container.py
+    #See the documentation in container.py
+    self.cot = cot 
+
+    # The spatial dimension of the problem (e.g. 2 or 3)
     self.dim = cot.dim
-    self.dic = {}
+
+    # Will hold beta values at DOFs. Will be populated by
+    # the strictEval method of its class.
+    self.dic = {} 
     
 def getRaKappara( self, y ):
     '''
     Just a short method cuz we use this all the time
     '''
 
-    # get an array for the differences of the coordinates
-    # and the point queried
+    # get an array for the differences of the
+    # the point queried (i.e. y) and DOFS
+    # coordinates (i.e. x).
     y_x = y - self.x
     
     # get corresponding distances
@@ -98,25 +122,40 @@ def getRaKappara( self, y ):
 #################################################################
 # Finite Element betas using FEniCS package #####################
 ################################################################# 
+
 class Beta2D(dol.Expression):
-  
+    '''
+    Implementing the optimal beta derived 
+    in the paper as a FENICS Expression.
+    '''
     def __init__( self, cot ):
-  
-        # For some reason it is impossible to subclass
-        # an Expression so I use this instead.
+        
+        # See comment on this method's 
+        # definition above.
         generalInit( self , cot )
        
+    # This is the method called when we need to return
+    # a beta at some boundary point. If we did not 
+    # calculate it before, then generalEval calls 
+    # the specific strictEval below.
     eval = generalEval
+
     def strictEval( self, value, y ):
         ''' 
+        In order to calculate our optimal betas, integration
+        needs to take place. We use the given FE mesh
         Basically, performs Riemann integration with 
         respect to the partition defined by the 
         discontinuous Galerkin finite element discretization.
+        The integration point (which in Riemann integration
+        can be everywhere) is the DOF of
         '''
                 
         ra, kappara, y_x = getRaKappara(self, y )
         
-        # These just come from the formulas for Beta.
+        # These just come from the formulas for Beta. kn 
+        # is a scipy method. It is the modified Bessel
+        # function of second kind.        
         bess0 = kn( 0, kappara )
         bess1 = kn( 1, kappara )
         enums = self.cot.kappa * ( bess0*bess0 + bess1*bess1 ) 
@@ -128,7 +167,8 @@ class Beta2D(dol.Expression):
         self.denom.vector().set_local( denom     )
 
         # Multiply with mass matrix which, in this case, is diagonal and holds
-        # cell area/volume on its diagonal. 
+        # cell area/volume on its diagonal (because it is mass matrix of a DG
+        # FE space).
         self.enum0.vector().set_local( (self.M * self.enum0.vector()).array() )
         self.enum1.vector().set_local( (self.M * self.enum1.vector()).array() )
         self.denom.vector().set_local( (self.M * self.denom.vector()).array() )
@@ -144,19 +184,37 @@ class Beta2D(dol.Expression):
        
 
 class Beta3D(dol.Expression):
- 
+    '''
+    Implementing the optimal beta derived 
+    in the paper as a FENICS Expression.
+    This class is very similar to the
+    Beta2D class. The part that forced
+    me to actually create two different
+    classes is the value_shape method.
+    You need it to be defined (because it
+    is called) before __init__ is called.
+    '''
     def __init__( self, cot ):
         
-        # For some rason it is impossible to subclass
-        # an Expression so I use this instead.
-        generalInit( self, cot )
-        
+        # See comment on this method's 
+        # definition above.
+        generalInit( self , cot )
+       
+    # This is the method called when we need to return
+    # a beta at some boundary point. If we did not 
+    # calculate it before, then generalEval calls 
+    # the specific strictEval below.
     eval = generalEval
+    
     def strictEval( self, value, y ):
         ''' 
+        In order to calculate our optimal betas, integration
+        needs to take place. We use the given FE mesh
         Basically, performs Riemann integration with 
         respect to the partition defined by the 
         discontinuous Galerkin finite element discretization.
+        The integration point (which in Riemann integration
+        can be everywhere) is the DOF of
         '''
 
         ra, kappara, y_x = getRaKappara(self, y )
@@ -199,11 +257,13 @@ class Beta2DAdaptive(dol.Expression):
     is given as a string that refers to a c++ file
     which is then compiled. Uses adaptive quadrature
     from the package cubature. That's is a whole mess on its
-    own...
+    own.
     '''
     
     def __init__( self, cot, tol = 1e-9 ):
         
+        # We always need this, because of subclassing
+        # issues discussed above.
         generalInit( self , cot )
         
         # Generate the expression from the c++ file that
@@ -215,13 +275,27 @@ class Beta2DAdaptive(dol.Expression):
     
         self.tol = tol
         
+    # See comments on this assignment in previous classes.
+    # The method generalEval is defined at the start of the
+    # file.
     eval = generalEval
+
     def strictEval( self, value, y ):
+        '''
+        Here we iterate over FE cells and perform
+        exact (i.e. adaptive) quadrature on each cell,
+        then sum
+        '''
         
         # the dimension
         d = self.dim
     
+        # We need to perform d integrals for the 
+        # enumerator and one for the denominator.
         result = np.zeros( (d+1,) )
+
+        # Every cell has (d+1) vertices, each has
+        # d coordinates. This array stores this data.
         vertices = np.empty(  (d+1)*d  )
      
         # Iterate over cells and perform adaptive quadrature
@@ -231,6 +305,9 @@ class Beta2DAdaptive(dol.Expression):
             for vertex in cell:
                 vertices[i:i+d] = self.coordinates[vertex]
                 i = i + d
+            
+            # The integrateVector method calculates and adds the result of integration
+            # of all components on a cell.
             self.xpr.integrateVector(  y, self.cot.kappa, vertices, self.tol, result )  
         
         # The last entry is the denominator, by which we divide.
@@ -341,8 +418,10 @@ class Beta2DRadial(dol.Expression):
         generalInit( self, cot )
                 
         self.G1, self.dG1, self.G2, self.dG2 = radial.radial(cot)
-                  
+    
+    # As before, same business.    
     eval = generalEval
+
     def strictEval( self, value, y ):
         '''
         Again - this is just Riemann itegration. We integrate different

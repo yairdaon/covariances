@@ -9,11 +9,12 @@ from dolfin import *
 '''
 This is a helper file. It contains routines
 that are somewhat peripheral to the actual 
-math done in a run
+math done in a run.
 '''
 
 
-# This ensures libraries for saving data exist
+# The following piece of codes makes sure we have the directory
+# structure where we want to save our data.
 dir_list = [ "data", 
              "data/square",
              "data/parallelogram",
@@ -29,17 +30,22 @@ for path in dir_list:
 # If we do not scale the input (i.e. we don't use variance
 # normalization).
 no_scaling =  lambda x: 1.0
+
 def apply_sources ( container, b, scaling = no_scaling ):
     '''
     given an assembled right hand side, we add to it
     a delta function at a location specific to the
-    mesh
+    mesh.
+    The default scaling is none. If we scale then we
+    ensure the variance equals 1.
     '''
 
     # Add two sources in antarctica - one in the bulk
     # and one in the western part, where boundary is
     # tight.
     name = container.mesh_name
+    
+    # Use source in antarctica mesh
     if "antarctica" in name:
         ant = dic["antarctica"]
         PointSource( container.V, 
@@ -51,13 +57,14 @@ def apply_sources ( container, b, scaling = no_scaling ):
                      scaling( ant.center_source )
                  ).apply( b )
         return
+
+    # Source in the other meshes
     elif "square" in name:
         source = dic["square"].source
     elif "parallelogram" in name:
         source = dic["parallelogram"].source
     elif "cube" in  name:
         source = dic["cube"].source
-    
     PointSource( container.V, 
                  Point ( source ),
                  scaling( source )
@@ -119,19 +126,30 @@ def save_plots( data,
     '''
     a routine to save plots and data for plots, based
     on the description variable desc.
+    
+    data is a FE function
     '''
        
-    location = "data/" + cot.mesh_name 
+    # Directory where we save the data
+    location = "data/" + cot.mesh_name
+
+    # In square and parallelogram we show a cross section,
+    # so we need to code it. The cross section is defined
+    # by the equation slope * x + intercept. 
     if "square" in cot.mesh_name or "parallelogram" in cot.mesh_name:
-        
+     
+        # Creat all the required files to hold the
+        # data we generate.
         line_file   = location + "/line.txt"
         source_file = location + "/source.txt"    
         plot_file   = location + "/" + add_desc( desc ) + ".txt"
         empty_file( line_file, source_file, plot_file )
 
+        # Save the source location to a designated file
         source = dic[cot.mesh_name].source
         add_point( source_file, source[0], source[1] )
 
+        # parametrizes the cross section
         x_range = np.hstack( ( np.arange( -0.1 , 0.05, 0.001 ),
                                np.arange(  0.05, 0.5 , 0.01  ) ) )
         y_data = [] 
@@ -145,16 +163,26 @@ def save_plots( data,
         intercept = source[1] - slope * source[0]
         line = lambda x: (x, slope * x + intercept )
 
+        # For every point in the parametrization, see if it
+        # gives a point that is inside the square/parallelogram.
+        # If so - save it with the right value.
         for pt in x_range:
             try:
+                
+                # Evaluate the FE funciton at the cross-section.
+                # If it is not in the domain this will throw an
+                # exception, which we ignore (below).
                 y = data( line(pt) )
                 add_point( plot_file, pt, y )
                 add_point( line_file, pt, line(pt)[1] )
                 y_data.append( y  )
                 x_real.append( pt )
+                
+            # The exception mentioned above is ignored
             except:
                 pass
  
+    # Saving without cross section is so much easier!!!!
     else:        
         loc_file = File( location + "/" + add_desc( desc ) + ".pvd" )
         loc_file << data

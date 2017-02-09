@@ -5,7 +5,14 @@ import numpy as np
 from scipy.interpolate import interp1d as interp
 
 def radial( container, h=None ):
-    
+    '''
+    This class is a substitute to the analytic expression
+    for the free space covariance funciton and its derivative.
+    We use it because said expressions have singularities
+    at the zero, which we don't like. So, we create a 1D
+    funciton (because free space green's function is radially
+    symmetric). See more details in paper.
+    '''    
     
     # Create mesh and define function space
     # Number of discretization points
@@ -34,8 +41,11 @@ def radial( container, h=None ):
     f = Constant( 0.0 ) 
 
     # The factors dont REALLY matter, since they cancel out
+    # when we calculate beta.
     
     d = container.dim
+
+    # Area of sphere in whatever dimension
     areaOfUnitSphere = 2 * math.pi**(d/2.0) / math.gamma(d/2.0)
     if d == 2:
         X = Expression( str(areaOfUnitSphere) + "* x[0]     ", degree=4) 
@@ -83,9 +93,9 @@ def radial( container, h=None ):
     # Derivative via finite difference, basically
     dG1[0:-1] = ( G1[1:] - G1[0:-1] ) / h  
     dG2[0:-1] = ( G2[1:] - G2[0:-1] ) / h
-    
-    # import pdb
-    # pdb.set_trace()
+
+    # Use a fast interpolation method,
+    # see imports at top
     G1  = interp( coo, G1,  kind = 'linear' )
     G2  = interp( coo, G2,  kind = 'linear' )
     dG1 = interp( coo, dG1, kind = 'zero'   )
