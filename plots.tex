@@ -1,0 +1,407 @@
+\documentclass{article}
+
+\usepackage[T1]{fontenc} % Use 8-bit encoding that has 256 glyphs
+\usepackage[english]{babel} % English language/hyphenation
+\usepackage{amsmath, amsfonts, amsthm} % Math packages
+
+%\usepackage[sort&compress,square,comma,authoryear]{natbib}
+
+% makes color citations
+\usepackage[
+  %dvips,dvipdfm,
+  colorlinks=true,urlcolor=blue,citecolor=red,linkcolor=red,bookmarks=true]{hyperref}
+
+\usepackage{color}
+\usepackage{pgfplots}
+\usepackage{tikz}
+%\pgfplotsset{compat=1.9} 
+%\usepackage{hyperref}
+%\usepackage{algorithm} % algorithm package
+%\usepackage[noend]{algpseudocode}
+\usepackage{graphicx}
+%\usepackage{wrapfig}
+\usepackage{paralist}
+\usepackage{graphics} %% add this and next lines if pictures should be in esp format
+\usepackage{epsfig} %For pictures: screened artwork should be set up with an 85 or 100 line screen
+\usepackage{graphicx} 
+\usepackage{epstopdf} 
+\usepackage[colorlinks=true]{hyperref}
+
+%----------------------------------------------------------------------------------------
+% new commands
+%----------------------------------------------------------------------------------------
+\newcommand{\der}{\text{d}}
+\newcommand{\coder}[1]{\texttt{#1}}
+\newcommand{\inner}[2]{#1 \cdot #2}
+\newcommand{\var}{\text{Var}}
+\newcommand{\corr}{\text{Corr}}
+\newcommand{\cov}{\text{Cov}}
+\newcommand{\diag}{\text{diag}}
+\newcommand{\dom}{\mathcal{D}om}
+\newcommand{\gsnote}[1]{{\textcolor{blue}{#1}}}
+\newcommand{\ydnote}[1]{{\textcolor{cyan}{#1}}}
+
+\newcommand{\precop}{\mathcal{L}}
+\newcommand{\Op}{\mathcal{A}}
+\newcommand{\covop}{\mathcal{C}}
+\newcommand{\lag}{\mathcal{L}}
+\newcommand{\n}{\boldsymbol{n} }
+\newcommand{\dn}{\partial \n }
+\newcommand{\x}{{\boldsymbol{x}}}
+\newcommand{\y}{{\boldsymbol{y}}}
+\newcommand{\z}{{\boldsymbol{z}}}
+\newcommand{\kxmy}{ \kappa \| \x - \y \| }
+\newcommand{\xmy}{ \| \x - \y \| }
+\newcommand{\proj}{\mathcal{P}}
+\newcommand{\kr}{\kappa r}
+
+% Choose your citing style here!!!!!!!!!!!!!!!!!!!
+
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\begin{document}
+
+\begin{figure}
+  \minipage{0.52\textwidth}
+  \begin{tikzpicture}[thick,scale=.85, every node/.style={scale=0.99}]
+    \begin{axis}
+      [
+      xmin = 0,
+      xmax = 0.5,
+      xlabel = {$s$},
+      ylabel = {$c(\x (s), \x^\star)$},
+      ymin   = 0,
+      compat = 1.3,
+      % ymax   = 130,
+      ytick = \empty,
+      legend cell align=left
+      ]
+      \draw[black!30!white, thin] (50,0) -- (50,130);
+      % 
+      \addplot [thick, black, mark=none] table {data/square/Free_Space_Greens_Function.txt};
+      \addlegendentry{\large Free-Space};
+      % 
+      \addplot[thick, blue, mark=none, dashed] table {data/square/Dirichlet_Greens_Function.txt};
+      \addlegendentry{\large Dirichlet BC};
+      % 
+      \addplot[thick, red, dotted, mark=none] table {data/square/Neumann_Greens_Function.txt};
+      \addlegendentry{\large Neumann BC};
+      % \node at (0.85cm,0.2cm) {$\y$};
+    \end{axis}
+    \begin{axis}
+      [
+      compat=1.3,
+      axis lines = none,
+      xmin = -0.1,
+      xmax = 1.1,
+      ymin   = -0.1,
+      ymax   = 1.1,
+      xtick = \empty,
+      ytick = \empty,
+      height = 4.5cm,
+      width = 4.5cm,
+      at={(3.9cm,1.2cm)},
+      legend cell align=left
+      ]
+      \addplot [thick, black!50!white, mark=none, fill=black!10!white] table {data/square/vertices.txt};
+      \addplot [thick, red  , mark=none] table {data/square/line.txt};
+      \addplot [only marks, mark = *, mark size=1.2] table {data/square/source.txt};
+      \node at (2.4cm,0.5cm) {$\Omega$};
+      \node at (0.6cm,1.8cm) {$\x^\star$};
+      \draw [black, thin] (0.35cm,1.45cm) -- (0.45cm,1.65cm);
+      \draw [black, thin] (0.6cm,1.45cm) -- (0.8cm,1.2cm);
+      \node at (1.4cm,1.1cm) {cross section};
+    \end{axis}
+  \end{tikzpicture}
+  \endminipage\hfill
+  \caption{Left: Cross sections through covariance functions induced
+    by elliptic PDE operators with different boundary
+    conditions. Shown is also a sketch of the domain $\Omega=[0,1]^2$
+    and the cross section $\x(s) = (s, 0.5)^T$.  The center is located
+    at $\x^\star = \x(0.05) = (0.05, 0.5)^T$.}
+  \label{fig:problem illustration}
+\end{figure}
+
+
+
+\begin{figure}
+  \begin{tikzpicture}[thick,scale=0.75, every node/.style={scale=1}]
+    \begin{axis}
+      [
+      compat = 1.3,
+      % xmin = 0.05,
+      % xmax = .95,
+      ymin = 8,
+      xlabel = {$s$},
+      ylabel = {$\beta((0,s)^T)$},
+      legend style={at={(0.5,0.97)},anchor=north},
+      legend cell align=left,
+      ]
+      \addlegendimage{empty legend}
+      \addlegendentry{\hspace{-.6cm}{Square, $L^2$-proj.}}
+      \addplot
+      [mark=triangle, red, only marks, mark size=.7]
+      table {data/square/beta_radial_32.txt};
+      %
+      %
+      \addplot
+      [mark=o, blue, only marks, mark size=.7] table
+      {data/square/beta_radial_64.txt};
+      %
+      %
+      \addplot
+      [mark=square, green, only marks, mark size=.7]
+      table {data/square/beta_radial_128.txt};
+      %
+      %
+      \addplot
+      [very thick, mark=none, black] 
+      table {data/square/beta_adaptive_2.txt};
+      \node at (0, 50) {\Large (a)};
+      \addlegendentry{$n=32$}
+      \addlegendentry{$n=64$}
+      \addlegendentry{$n=128$}
+      \addlegendentry{adaptive}
+    \end{axis}
+  \end{tikzpicture}\hfill
+%
+  \begin{tikzpicture}[thick,scale=0.75, every node/.style={scale=1}]
+    \begin{axis}
+      [
+      compat = 1.3,
+      % xmin = 0.05,
+      % xmax = .95,
+      xlabel = {$s$},
+      ylabel = {$\beta((0,1/2,s)^T)$},
+      legend style={at={(0.5,0.97)},anchor=north},
+      legend cell align=left
+      ]
+      \addlegendimage{empty legend}
+      \addlegendentry{\hspace{-.6cm}{Cube, $L^2$-proj.}}
+      \addplot
+      [red, mark=triangle, only marks, mark size = .7]
+      table {data/cube/beta_radial_32.txt};
+       %
+      %
+      \addplot
+      [blue, mark=o, only marks, mark size=.7] 
+      table {data/cube/beta_radial_64.txt};
+      %
+      %
+      \addplot
+      [green,  mark=square, only marks, mark size=.7]
+      table {data/cube/beta_radial_128.txt};
+      %
+      %
+      \addplot
+      [very thick, black, mark=none]
+      table {data/cube/beta_adaptive_2.txt};
+      \node at (0, 0) {\Large (b)}; 
+      \addlegendentry{$n=32$}
+      \addlegendentry{$n=64$}
+      \addlegendentry{$n=128$}
+      \addlegendentry{adaptive}
+    \end{axis}
+  \end{tikzpicture}\\
+ \begin{tikzpicture}[thick,scale=0.75, every node/.style={scale=1}]
+    \begin{axis}
+      [
+      compat = 1.3,
+      % xmin = 0.05,
+      % xmax = .95,
+      ymin = 8,
+      xlabel = {$s$},
+      ylabel = {$\beta((0,s)^T)$},
+      legend style={at={(0.5,0.97)},anchor=north},
+      legend cell align=left
+      ]
+      \addlegendimage{empty legend},
+      \addlegendentry{\hspace{-.6cm}{Square, direct int.}}
+      \addplot
+      [mark=triangle, red, only marks, mark size=.7]
+      table {data/square/beta_std_32.txt};
+      %
+      %
+      \addplot
+      [mark=o, blue, only marks, mark size=.7] table
+      {data/square/beta_std_64.txt};
+      %
+      %
+      \addplot
+      [mark=square, green, only marks, mark size=.7]
+      table {data/square/beta_std_128.txt};
+      %
+      %
+      \addplot
+      [very thick, mark=none, black] 
+      table {data/square/beta_adaptive_2.txt};
+      \node at (0, 15) {\Large (c)}; 
+      \addlegendentry{$n=32$}
+      \addlegendentry{$n=64$}
+      \addlegendentry{$n=128$}
+      \addlegendentry{adaptive}
+    \end{axis}
+  \end{tikzpicture}\hfill
+%
+  \begin{tikzpicture}[thick,scale=0.75, every node/.style={scale=1}]
+    \begin{axis}
+      [
+      compat = 1.3,
+      % xmin = 0.05,
+      % xmax = .95,
+      xlabel = {$s$},
+      ylabel = {$\beta((0,1/2,s)^T)$},
+      legend cell align=left,
+      legend style={at={(0.5,0.97)},anchor=north},
+      ]
+      \addlegendimage{empty legend},
+      \addlegendentry{\hspace{-.6cm}{Cube, direct int.}}
+      \addplot
+      [red, mark=triangle, only marks, mark size = .7]
+      table {data/cube/beta_std_32.txt};
+      %
+      %
+      \addplot
+      [blue, mark=o, only marks, mark size=.7] 
+      table {data/cube/beta_std_64.txt};
+      %
+      %
+      \addplot
+      [green,  mark=square, only marks, mark size=.7]
+      table {data/cube/beta_std_128.txt};
+      %
+      %
+      \addplot
+      [very thick, black, mark=none]
+      table {data/cube/beta_adaptive_2.txt};
+      \node at (0, 0) {\Large (d)}; 
+      \addlegendentry{$n=32$}
+      \addlegendentry{$n=64$}
+      \addlegendentry{$n=128$}
+      \addlegendentry{adaptive}
+    \end{axis}
+  \end{tikzpicture}
+  \caption{Optimal Robin boundary coefficients $\beta$ for an edge of
+    a square (a), (c) and a line on a face of a cube (b), (d). Shown
+    are coefficients computed by adaptive quadrature, and their
+    discrete approximations on regular meshes obtained by dividing
+    $n^2$ squares into $4n^2$ triangles in two dimensions, and $n^3$
+    cubes into $6n^3$ tetrahedra in three dimensions. The
+    approximations are either based on approximate $L_2$-projections followed
+    by finite element quadrature (a), (b) or on direct finite element
+    quadrature (c), (d) as discussed in the paper.
+    \label{fig:beta}}
+\end{figure}
+
+\begin{figure}
+  \begin{tikzpicture}[thick,scale=1, every node/.style={scale=1}]
+    \begin{axis}
+      [
+      % yscale = 0.75,
+      % xscale = 0.75,
+      compat = 1.3,
+      xmin = 0.004,
+      xmax = 0.5,
+      xlabel = {$s$},
+      ylabel = {$c(\x^{\star}, \x(s) )$},
+      ymin   = 0,
+      ymax   = 0.0008,
+      %title = {optimal Robin BC},
+      yticklabels = , 
+      ytick = \empty,
+      legend style={nodes=right},
+      legend style={at={(1,1)},anchor=north east},
+      legend cell align=left
+      ]
+      \draw[black!30!white, thin] (25,0) -- (25,130);
+      %
+      %
+      \addplot 
+      [thick, black, mark=none]
+      table
+      {data/parallelogram/Free_Space_Greens_Function.txt};
+      \addlegendentry{Free-Space};
+      %
+      %
+      %
+      \addplot 
+      [thick, red, dotted, mark=none] 
+      table 
+      {data/parallelogram/Neumann_Greens_Function.txt};
+      \addlegendentry{Neumann BC};
+      % 
+      %
+      %
+      \addplot 
+      [thick, green!80!black, loosely dashdotted, mark=none] 
+      table 
+      {data/parallelogram/Roininen_Greens_Function.txt};
+      \addlegendentry{Constant Robin}
+      %
+      %
+      %
+      \addplot 
+      [thick, green!60!black, densely dashdotted       ,   mark=none] 
+      table 
+      {data/parallelogram/Ours_Greens_Function_Radial.txt};
+      \addlegendentry{Var.\ Robin};
+      
+      \addplot 
+      [red, thick, dashed, mark=none] 
+      table 
+      {data/parallelogram/Ours_Constant_Variance_Greens_Function_Radial.txt};
+      \addlegendentry{Var.\ Robin+Const.\ Var.};
+      
+      \addplot 
+      [thick, blue, dashed, mark=none] 
+      table 
+      {data/parallelogram/Neumann_Constant_Variance_Greens_Function.txt};
+      \addlegendentry{Neumann+Const.\ Var.};
+    \end{axis}
+  \end{tikzpicture}
+  %%
+  %%
+   \begin{tikzpicture}[thick, scale = 1, every node/.style={scale=1}]
+     \clip (0,-0.85) rectangle (3.2,10);
+     \begin{axis}
+      [
+      % yscale = 0.75,
+      % xscale = 0.75,
+      xmin = -0.01,
+      xmax = .5,
+      ymin   = -0.01,
+      ymax   = .5,
+      % xtick = \empty,
+      % ytick = \empty
+      xlabel = {$$},
+      legend cell align=left
+      ]      
+      \addplot [mark=none, fill=black!10!white] table {data/parallelogram/vertices.txt}; 
+      \addplot [thin, black, mark=none] table {data/parallelogram/vertices.txt};
+      \addplot [thick, red  , mark=none] table {data/parallelogram/line.txt};
+      \addplot [only marks, mark = *   ] table {data/parallelogram/source.txt};
+      \node at (2.4cm,3.cm) {\large $\Omega$};
+      %
+      \node at (1.1cm,1.1cm) {$\x^\star$};
+      \draw [black, thin] (0.9cm,0.9cm) -- (0.42cm,0.35cm);
+      %
+      \node at (1.8cm,2.1cm) {cross section};
+      \draw [black, thin] (1.6cm,1.95cm) -- (1.6cm,0.95cm);
+      \draw[black] (23.75,0) -- (23.75,130);
+    \end{axis}
+  \end{tikzpicture}
+  \caption{The left plot shows covariance functions derived from PDE
+    operators with different boundary conditions for the
+    parallelogram domain example.
+    Shown are slices of the Green's funcation along a cross section.
+    The right plot shows part of the parallelogram domain $\Omega$.
+    The black dot is
+    $\x^{\star} = (0.025, 0.025)^T$---the center of the
+    Green's functions. 
+    The red line indicates the cross section
+    $\x(s) = (s, 0.6s + 0.01 )$, which is used in the left plot.
+  \label{fig:parallelogram greens}}
+\end{figure}
+
+\end{document}
+
