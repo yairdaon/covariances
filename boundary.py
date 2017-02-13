@@ -171,7 +171,7 @@ for i in range( 5, 8 ):
         bdryBetas( "square", A, "adaptive", nn, 2 )
    
 # Pretty similar to previous loop, look there for details.
-for i in range( 6, 8 ):
+for i in range( 5, 8 ):
     
     n_disc = 2**i
     

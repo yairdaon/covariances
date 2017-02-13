@@ -13,12 +13,9 @@ run:
 	python simulate.py cube radial
 	python boundary.py
 
-tests:
-	rm -rvf test.o*
-	sbatch test
-
 clean:
 	rm -rvf *~ *.pyc cpp/*~ *.o *.so
+	rm -rvf *.pdf *.log *.aux *.fls *.out *fdb_latexmk
 	rm -rvf cov/C/build
 	rm -vf cov/C/*.so	
 	rm -rvf build

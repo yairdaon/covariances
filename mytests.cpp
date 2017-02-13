@@ -10,6 +10,9 @@
 
 using namespace std;
 
+/*
+  Tests!! Run them and see everything works.
+ */
 void testSimple2D() {
  
   double fdata[1 + 1 + 2 + 6];
@@ -240,8 +243,7 @@ void testSimple3D() {
   fdata[3] = 2.2;
   fdata[4] = 3.3;
   memcpy( fdata + 1 + 1 + 3 , vertices3D, 12 * sizeof(double) );
-  // printData( fdata, 3 );
-  
+   
   cout << "\n\nExample 2 from: http://tutorial.math.lamar.edu/Classes/CalcIII/TripleIntegrals.aspx \n";
   hcubature(1, simple3D, &fdata, 3, xmin, xmax, 0, tol, tol, ERROR_INDIVIDUAL, &val, &err);
   cout << "Computed integral = " << val << " +/- " << err << "\n";
@@ -271,11 +273,11 @@ void testBetaCube() {
 	    ERROR_INDIVIDUAL,
 	    val,
 	    err);
-  for (int i = i ; i < 4 ; i ++ ) 
+  for (int i = 0 ; i < 4 ; i ++ )  
     cout << "Computed integral = " << val[i] << " +/- " << err[i] << "\n";
-  // cout << "Analytic solution = " << 9                     << "\n";
-  // cout << "Difference        = " << val - 9               << "\n";
-  // cout << "Tolerance         = " << tol                   << "\n";
+  cout << "Analytic solution = " << 9                     << "\n";
+  cout << "Difference        = " << val - 9               << "\n";
+  cout << "Tolerance         = " << tol                   << "\n";
   
 }
 
@@ -290,7 +292,6 @@ int main(int argc, char **argv)
 
   testSimpleA3D();
   testHardA3D();
-  // testSwap3D();
   testSimplexVolume3D();
   testSimple3D();
   testBetaCube();

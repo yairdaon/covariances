@@ -7,7 +7,13 @@
 #include "header.h"
 
 using namespace std;
-
+/*
+  This file integrates the function
+  betaCube centered at a specific location 
+  y on the unit cube. The four components
+  of the function are three components of the
+  enumerator and one of the denominator.
+ */
 
 
 

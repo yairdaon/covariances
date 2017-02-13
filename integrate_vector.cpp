@@ -13,12 +13,20 @@ void integrateVector( int n,
 		      double tol,
 		      int fdim,
 		      double * result ) {
+  /*
+    Integrates and adds an n-dimensional vector valued function.
+    The idea you should have in mind is performing Riemann integration
+    over cells. Then you add the result of every cell to the overall
+    sum.
+  */
   
   double * val  = new double[fdim];
   double * err  = new double[fdim];
   double * xmin = new double[n   ];
   double * xmax = new double[n   ];
   
+  // Vectors live inside the n-dimensional cube. Then
+  // we stretch, translate and rotate to get to each cell.
   for (int i = 0; i < n ; i++ ) {
     xmin[i] = 0;
     xmax[i] = 1;
@@ -47,6 +55,8 @@ void integrateVector( int n,
  
   for (int i = 0; i < fdim ; i++ ) {
     result[i] = result[i] + val[i];
+
+    // Catch NaNs, as a precaution let's say
     if isnan( val[i] ) {
 	printf( "NaN! Vertices = \n" );
 	printData( fdata, 2 );

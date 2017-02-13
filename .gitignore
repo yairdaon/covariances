@@ -9,6 +9,10 @@
 *.vtu
 *.vtk
 *.txt
+*.fls
+*.aux
+*.log
+*.fdb*
 2D/data
 2D/ffc*
 2D/backup*
@@ -25,4 +29,4 @@ ffc_form*
 old/*
 *.o*
 tmp.py
-
+mytests
