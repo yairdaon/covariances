@@ -30,13 +30,13 @@ variable. When a value is needed, the generalEval method pulls the
 right value from the dic variable.
 '''
 
-
-#################################################################
-# The free methods below are used since you can't sub-subclass ##
-# a FEniCS Expression class but we still want them used by all ##
-# classes in this moodule.                                     ##
-#################################################################
+# #################################################################
+# # The free methods below are used since you can't sub-subclass ##
+# # a FEniCS Expression class but we still want them used by all ##
+# # classes in this moodule.                                     ##
+# #################################################################
 def generalEval( self, value, y ):
+    
     '''
     This is the eval method for the Expression class.
     It just checks whether we already did the 
@@ -45,17 +45,33 @@ def generalEval( self, value, y ):
     strictEval method is called. The strictEval 
     method is implemented for every beta.
     '''
-    # if self.dim == 3:
-    #     y = np.minimum( y, 1-y )        
-        
-    # If we already did the calculation, return the value...
-    if self.dic.has_key( y.tostring() ):
-        value = self.dic[ y.tostring() ]
-    
-    # Otherwise, do the calculation and store it.
+
+    dim = self.dim
+
+    # Generate the key for the dicitonary ...
+    if dim == 2:
+        tupKey = (y[0],y[1])
+    elif dim == 3:
+        tupKey = (y[0],y[1],y[2])
+
+    # ...if the key exists, this means we're already
+    # done the calculation, so we return the value stored...
+    if self.dic.has_key( tupKey ):
+        t = self.dic[ tupKey ]
+        for i in range(dim):
+            value[i] = t[i]
+
+    # ... If not, we have to do the calculation and store its result.
     else:
+
+        # Do the full calculation
         self.strictEval( value, y )
-        self.dic[ y.tostring() ] = value   
+
+        # Store the result
+        if dim == 2:
+            self.dic[ tupKey ] = (value[0], value[1]) 
+        if dim == 3:
+            self.dic[ tupKey ] = (value[0], value[1], value[2]) 
     
 def generalInit( self, cot ):
     '''
@@ -63,7 +79,7 @@ def generalInit( self, cot ):
     cot is a container object that holds pretty much
     everything. See container.py for its documentation.
     '''
-    
+ 
     # This ensures we don't try to evaluate the fundamental
     # solution at vertices since it is singular there.
     # The DOF for this space are in the middle of cells, not 
@@ -159,6 +175,7 @@ class Beta2D(dol.Expression):
         bess0 = kn( 0, kappara )
         bess1 = kn( 1, kappara )
         enums = self.cot.kappa * ( bess0*bess0 + bess1*bess1 ) 
+
         enum  = np.einsum( "i , ik -> ik", enums, y_x )
         denom = 2 * ra * bess0 * bess1   
         

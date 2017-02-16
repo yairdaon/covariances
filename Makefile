@@ -3,14 +3,17 @@ CFLAGS= -I. -lm
 DEPS = header.h cubature.h converged.h vwrapper.h aux.h
 OBJ = mytests.o helper.o hcubature.o 
 
-run:
+all:
 	python simulate.py square
-	python simulate.py parallelogram std
 	python simulate.py parallelogram radial
-	python simulate.py antarctica std
+	python simulate.py parallelogram std
+	python simulate.py parallelogram adaptive
 	python simulate.py antarctica radial	
-	python simulate.py cube std
+	python simulate.py antarctica std
+	python simulate.py antarctica adaptive	
 	python simulate.py cube radial
+	python simulate.py cube std
+	python simulate.py cube adaptive
 	python boundary.py
 
 clean:
@@ -20,7 +23,13 @@ clean:
 	rm -vf cov/C/*.so	
 	rm -rvf build
 	rm -vf cov*.so
-
+	rm -rvf data/
+plots:
+	make clean
+	python simulate.py square
+	python simulate.py parallelogram radial
+	python boundary.py
+ 
 comp: mytests
 	./mytests
 
