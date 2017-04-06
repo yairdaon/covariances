@@ -221,7 +221,7 @@ def add_point( plot_file, *args ):
 
 dic = {}
 
-dic["square"] = lambda: get_mesh( "square", 128 )
+dic["square"] = lambda: get_mesh( "square", 256 )
 dic["square"].alpha = 121.0
 dic["square"].source = np.array( [ 0.05    , 0.5   ] ) 
 

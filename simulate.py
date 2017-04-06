@@ -68,7 +68,6 @@ def fundamental3D( cot ):
                        ["Free Space", "Greens Function"], 
                        cot )
 
-
 def fundamental( cot ):
     ''' 
     pretty self explanatory.
@@ -111,6 +110,8 @@ def green( cot, BC ):
                        desc,
                        cot )
     
+    # Becuase I need it somewhere else...
+    return sol
 
 def variance( cot, BC ):
     '''
@@ -154,8 +155,8 @@ def variance( cot, BC ):
         helper.save_plots( sol_constant_var,
                            greens_desc,
                            cot )
-        
-  
+    # No return value since it is stored in cot anyway
+
 
 if __name__ == "__main__":
 
