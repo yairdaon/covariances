@@ -216,11 +216,10 @@ class Parameters(object):
         return  self.fourier_multiplier( f, lambda x: 1. / x )
         
     def invert_fourier_multiplier( self, f, powa, M=lambda x: x, ):
-        ''' 
-        We'd like to apply an inverse covariace to f. 
-        However, it is not that simple - we don't have
-        direct access to the inverse covariacne using
-        pads and projections. We can apply covariacne
+        '''We'd like to apply an inverse covariace to f. 
+        However, it is not
+        that simple - we don't have direct access to the inverse
+        covariacne using pads and projections. We can apply covariacne
         and apply the inverse of its schur complement.
         
         The former is the target of the conjugate 
@@ -228,6 +227,7 @@ class Parameters(object):
         preconditioner. We access both using the same
         routien, only with a different flag - namely 
         the inv_schur flag.
+
         '''      
         
         x = np.zeros( self.ins**2 )
@@ -242,42 +242,38 @@ class Parameters(object):
                )
         
     
-def make_plots( n ):
+def make_plots( n, powers ):
     
-    par1 = Parameters(2**n, 2)
-    f1 = par1.sample()
-    f1 = f1.reshape( (par1.ins, par1.ins) ) 
-  
-    par2 = Parameters(2**n, 1.8)
-    f2 = par2.sample()
-    f2 = f2.reshape( (par2.ins, par2.ins) ) 
-  
-    par3 = Parameters(2**n, 1.6)
-    f3 = par3.sample()
-    f3 = f3.reshape( (par3.ins, par3.ins) ) 
-        
-    fig = plt.figure(figsize=(12,4))
-        
-    ax1 = fig.add_subplot(131)
-    ax1.pcolormesh( par1.insX, par1.insY, f1 )
-    ax1.set_xlim( (0.25,0.75) )
-    ax1.set_ylim( (0.25,0.75) )
-    ax1.set_title( "$p=2$" )
-        
-    ax2 = fig.add_subplot(132)
-    ax2.pcolormesh( par2.insX, par2.insY, f2 )
-    ax2.set_xlim( (0.25,0.75) )
-    ax2.set_ylim( (0.25,0.75) )
-    ax2.set_title( "$p=1.8$" )
+    def helper( par, fig, pos, powa ):
+       
+        f = par.sample().reshape( (par.ins, par.ins) )
+        ax = fig.add_subplot( str(pos) )
+        ax.pcolormesh( par.insX, par.insY, f )
+        ax.set_xlim( (0.25,0.75) )
+        ax.set_ylim( (0.25,0.75) )
+        ax.set_title( "p=" + str(powa) )
+        ax.axis('off')
+        im = plt.imshow( f )
+        # return ax.imshow( f,
+        #                   vmin= -1,
+        #                   vmax = 1 ) 
+        return im
+    pos = 230
+    fig = plt.figure()    
     
-    ax3 = fig.add_subplot(133)
-    ax3.pcolormesh( par3.insX, par3.insY, f3 )
-    ax3.set_xlim( (0.25,0.75) )
-    ax3.set_ylim( (0.25,0.75) )
-    ax3.set_title( "$p=1.6$" )
-    plt.savefig('../thesis/data/fft2d/samples.png', bbox_inches='tight')
-    plt.savefig('../thesis/data/fft2d/samples.pdf', bbox_inches='tight')
-    #plt.show()     
+    
+    for powa in powers:
+        par = Parameters(2**n, powa )
+        im = helper( par, fig, pos    , powa)
+        im = helper( par, fig, pos + 3, powa)
+        pos = pos+1
+
+    #im = imshow     
+    plt.colorbar(im, ax=fig.axes )#.ravel().tolist())
+   
+    #plt.savefig('../thesis/data/fft2d/samples.png', bbox_inches='tight')
+    #plt.savefig('../thesis/data/fft2d/samples.pdf', bbox_inches='tight')
+    plt.show()     
 
 def run_one( n, power, prec, filename ):       
 
@@ -314,8 +310,9 @@ def run_one( n, power, prec, filename ):
                 
 if __name__ == "__main__":
 
-    make_plots( 12 )
     powers = [1.6, 1.8, 2.]
+    make_plots( 4, powers )
+    assert False
     ran = range(3,10)
     
   
