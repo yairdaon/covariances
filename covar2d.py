@@ -3,13 +3,22 @@ import numpy as np
 from numpy.fft import rfft2 as rfft2
 from numpy.fft import irfft2 as irfft2
 from numpy.fft import rfftfreq as rfftfreq 
+
+from numpy.fft import fft2 as fft2
+from numpy.fft import ifft2 as ifft2
+from numpy.fft import fftfreq as fftfreq 
+
 from numpy import dot as dot
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm 
 import scipy.sparse.linalg as la
 import pdb
 import math
 import sys
+
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm 
+import matplotlib as mpl
+from mpl_toolkits.axes_grid1 import ImageGrid
+
 
 def pcg(A, b, x, M, tol ):
 
@@ -74,19 +83,29 @@ class Parameters(object):
         
         # Alpha is the relative weight we give the 
         # identity operator. 
-        assert( alpha > 0 and alpha < 1 )
+        assert( alpha > 0 ) # and alpha < 1 )
         
         # What we get when twice differnetiating complex exponentials
         factor = 4 * np.pi * np.pi 
     
         # ????????????????????????????????
-        eigs_x = np.arange( 0, out/2 + 1 ) 
-        eigs_y = np.arange( 0, out ) 
+        # eigs_x = np.arange( 0, out/2 + 1 ) 
+        # eigs_y = np.append( -np.arange(out/2-1, 0, -1), np.arange( 0, out/2 + 1 ) )
+        
+        eigs_x = fftfreq( self.out )
+        eigs_y = fftfreq( self.out )
+        #pdb.set_trace() 
+        
         eigs_x, eigs_y = np.meshgrid( eigs_x, eigs_y )
         
         eigs = eigs_x * eigs_x + eigs_y * eigs_y
-        eigs = alpha + eigs
-        self.eigs      = sigma**2 * np.power( eigs, -power )
+        eigs = eigs * factor  
+        nu = power - 1
+        var = math.gamma( nu ) / (
+            math.gamma( nu + 1 ) * 4. * math.pi * alpha**( nu ) )
+        print ( "var = " + str(var) )
+        eigs = alpha + eigs # *  gam
+        self.eigs = np.power( eigs, -power )
 
 
     def project( self, v ):
@@ -130,9 +149,8 @@ class Parameters(object):
         and raises it to the right power
         '''
 
-        assert np.all( f.imag == 0 )
+        #assert np.all( f.imag == 0 )
         
-        #pdb.set_trace()
         if np.size(f) == self.ins**2:        
             dim = self.ins
             f = self.pad( f )
@@ -144,10 +162,11 @@ class Parameters(object):
             raise ValueError("Inconsistent dimensions for Fourier multiplier")
                        
         f = f.reshape( (self.out,self.out) )       
-        f_hat = rfft2( f )
-        f = irfft2( f_hat * powa(self.eigs) )
+        f_hat = fft2( f )
+        #pdb.set_trace() 
+        f = ifft2( f_hat * powa(self.eigs) )
   
-        assert np.linalg.norm( np.imag(f) ) < self.eps
+        #assert np.linalg.norm( np.imag(f) ) < self.eps
         
         f = np.real( f ) 
         if dim == self.ins:
@@ -169,7 +188,7 @@ class Parameters(object):
         '''
         # Generate iid gaussians on a mesh corresponding to
         # the ENTIRE domain
-        Z = np.random.randn( self.out**2 )  
+        Z = np.random.randn( self.out**2 ) + 1j * np.random.randn( self.out**2 )   
             
         # Apply covariance to power half. This samples
         # from our covaraince function.
@@ -241,39 +260,6 @@ class Parameters(object):
                    self.eps # (realtive) tolerance
                )
         
-    
-def make_plots( n, powers ):
-    
-    def helper( par, fig, pos, powa ):
-       
-        f = par.sample().reshape( (par.ins, par.ins) )
-        ax = fig.add_subplot( str(pos) )
-        ax.pcolormesh( par.insX, par.insY, f )
-        ax.set_xlim( (0.25,0.75) )
-        ax.set_ylim( (0.25,0.75) )
-        ax.set_title( "p=" + str(powa) )
-        ax.axis('off')
-        im = plt.imshow( f )
-        # return ax.imshow( f,
-        #                   vmin= -1,
-        #                   vmax = 1 ) 
-        return im
-    pos = 230
-    fig = plt.figure()    
-    
-    
-    for powa in powers:
-        par = Parameters(2**n, powa )
-        im = helper( par, fig, pos    , powa)
-        im = helper( par, fig, pos + 3, powa)
-        pos = pos+1
-
-    #im = imshow     
-    plt.colorbar(im, ax=fig.axes )#.ravel().tolist())
-   
-    #plt.savefig('../thesis/data/fft2d/samples.png', bbox_inches='tight')
-    #plt.savefig('../thesis/data/fft2d/samples.pdf', bbox_inches='tight')
-    plt.show()     
 
 def run_one( n, power, prec, filename ):       
 
@@ -307,11 +293,84 @@ def run_one( n, power, prec, filename ):
             break
     dat = str(4**n) + " " + str(avg) + "\n"       
     open( filename, "a").write(dat)
-                
+            
+def make_plots( n, powers ):
+    
+    def helper( par, fig, pos, powa ):
+        
+        f = par.sample().reshape( (par.ins, par.ins) )
+        ax = fig.add_subplot( str(pos) )
+        ax.pcolormesh( par.insX, par.insY, f )
+        ax.set_xlim( (0.25,0.75) )
+        ax.set_ylim( (0.25,0.75) )
+        ax.set_title( "p=" + str(powa) )
+        ax.axis('off')
+        
+        
+    # pos = 230
+    # fig = plt.figure()    
+    
+    
+    # for powa in powers:
+    #     par = Parameters(2**n, powa )
+    #     helper( par, fig, pos    , powa)
+    #     helper( par, fig, pos + 3, powa)
+    #     pos = pos+1
+
+    # im = plt.imshow( np.ones((par.ins,par.ins)) )
+    # plt.colorbar(im, ax=fig.axes )#.ravel().tolist())
+   
+    #plt.savefig('../thesis/data/fft2d/samples.png', bbox_inches='tight')
+    #plt.savefig('../thesis/data/fft2d/samples.pdf', bbox_inches='tight')
+
+
+
+    # Set up figure and image grid
+    fig = plt.figure(figsize=(9.75, 3))
+
+    grid = ImageGrid(fig, 111,          # as in plt.subplot(111)
+                     nrows_ncols=(2,3),
+                     axes_pad=0.15,
+                     share_all=True,
+                     cbar_location="right",
+                     cbar_mode="single",
+                     cbar_size="7%",
+                     cbar_pad=0.15                    
+                 )
+    v = 1 # 0.07
+    i = 0
+    # Add data to image grid
+    for ax in grid:
+        print()
+        print()
+        if i == 0 or i == 3:
+            par = Parameters( 2**n, 1.51 )
+        if i == 1 or i == 4:
+            par = Parameters( 2**n, 1.75 )
+        if i == 2 or i == 5:
+            par = Parameters( 2**n, 2. )
+        
+        tot = 0
+        num = 500
+        for sam in range(0,num):
+            f = par.sample().reshape( (par.ins, par.ins) )
+            tot = tot + f*f
+        print( "estimated var = " + str(np.sum(tot) / num / par.ins**2) )
+   
+        im = ax.imshow( f, vmin=-v, vmax=v )
+        i = i + 1
+
+    # Colorbar
+    # ax.cax.colorbar(im)
+    # ax.cax.toggle_label(True)
+
+    # plt.tight_layout()    # Works, but may still require rect paramater to keep colorbar labels visible
+    # plt.show()
+        
 if __name__ == "__main__":
 
     powers = [1.6, 1.8, 2.]
-    make_plots( 4, powers )
+    make_plots( 8, powers )
     assert False
     ran = range(3,10)
     

@@ -43,3 +43,7 @@ mytests:$(OBJ)
 hcubature.so:
 	g++ -c -Wall -Werror -fpic hcubature.c 
 	g++ -shared -o libhcubature.so hcubature.o
+
+cg:
+	python3 covar2d.py 
+	python3 covar2d.py 1
